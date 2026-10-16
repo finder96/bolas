@@ -85,7 +85,10 @@ button.ghost { background: transparent; }
 button.accent { border-color: rgba(95,211,196,.5); color: var(--accent); background: rgba(95,211,196,.08); }
 button.primary { border: 0; font-weight: 600; color: #120f18; background: linear-gradient(120deg, var(--accent), var(--accent2)); }
 button.round { width: 40px; height: 40px; border-radius: 50%; padding: 0; background: var(--text); color: #120f18; border: 0; font-size: 14px; }
-button.mini { padding: 1px 7px; font-size: 12px; border-radius: 7px; }
+button.mini, label.mini { padding: 1px 7px; font-size: 12px; border-radius: 7px; }
+label.upload { cursor: pointer; border: 1px solid var(--line); color: var(--text); }
+label.upload:hover { border-color: #4a4360; }
+.lbl { display: flex; align-items: center; gap: 8px; }
 .actions { display: flex; gap: 8px; flex-wrap: wrap; }
 .actions .primary { margin-left: auto; }
 .progress { height: 6px; background: var(--panel2); border-radius: 6px; overflow: hidden; }

@@ -2,8 +2,6 @@
 exports/*
 !exports/.gitkeep
 data.json
-fundos/*
-!fundos/.gitkeep
 node_modules/
 .DS_Store
 Thumbs.db

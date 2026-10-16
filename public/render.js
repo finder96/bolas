@@ -47,7 +47,7 @@ export class Renderer {
     this.tl = tl; this.st = st;
     this.stops = (PALETTES[st.palette] || PALETTES.neon).stops;
     this.img = null;
-    if (st.bg.startsWith('img:')) this.img = await loadImage('/fundos/' + encodeURIComponent(st.bg.slice(4))).catch(() => null);
+    if (st.bgUrl) this.img = await loadImage(st.bgUrl).catch(() => null);
     this.bg = BACKGROUNDS[st.bg] || BACKGROUNDS.noite;
     this.bgCache = document.createElement('canvas'); this.bgCache.width = W; this.bgCache.height = H;
     const b = this.bgCache.getContext('2d'), g = b.createLinearGradient(0, 0, 0, H);

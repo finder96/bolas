@@ -23,6 +23,8 @@ const state = {
   cfg: null,
   tl: null,
   fundos: [],
+  uploads: {}, // fundos enviados pelo botão (só nesta aba)
+  server: false, // true quando roda com `npm start`; false no GitHub Pages
   playing: false,
   frame: 0,
   muted: false,
@@ -46,7 +48,12 @@ function suggestCaption(c) {
   return `${c.hook}\n\n🎵 ${m.name}${m.gen ? '' : ' — ' + m.credit}\n\n${BASE_TAGS} ${SIMS[c.sim].tags}`;
 }
 
-const style = () => ({ bg: state.cfg.bg, palette: state.cfg.palette, hook: state.cfg.hook, cta: state.cfg.cta, handle: state.cfg.handle });
+function bgUrl(bg) {
+  if (!bg.startsWith('img:')) return null;
+  const name = bg.slice(4);
+  return state.uploads[name] || (state.fundos.includes(name) ? 'fundos/' + encodeURIComponent(name) : null);
+}
+const style = () => ({ bg: state.cfg.bg, bgUrl: bgUrl(state.cfg.bg), palette: state.cfg.palette, hook: state.cfg.hook, cta: state.cfg.cta, handle: state.cfg.handle });
 
 // ---------- semana ----------
 function renderWeek() {
@@ -103,7 +110,7 @@ function fillForm() {
   options($('#outcome'), d.outcomes, c.outcome);
   options($('#dur'), Object.entries(DURATIONS).map(([k, v]) => [k, v.name]), c.dur);
   options($('#music'), Object.entries(MELODIES).map(([k, m]) => [k, m.gen ? m.name : `${m.name} · ${m.credit}`]), c.music);
-  options($('#bg'), [...Object.entries(BACKGROUNDS).map(([k, b]) => [k, b.name]), ...state.fundos.map(f => ['img:' + f, '🖼 ' + f])], c.bg);
+  options($('#bg'), [...Object.entries(BACKGROUNDS).map(([k, b]) => [k, b.name]), ...[...new Set([...state.fundos, ...Object.keys(state.uploads)])].map(f => ['img:' + f, '🖼 ' + f])], c.bg);
   options($('#palette'), Object.entries(PALETTES).map(([k, p]) => [k, p.name]), c.palette);
   $('#seed').value = c.seed;
   $('#hook').value = c.hook; $('#cta').value = c.cta; $('#caption').value = c.caption; $('#handle').value = c.handle;
@@ -139,6 +146,14 @@ function bindForm() {
   $('#save').onclick = () => save('Dia salvo.');
   $('#copyCaption').onclick = async () => { await navigator.clipboard.writeText(state.cfg.caption); status('Legenda copiada.'); };
   $('#export').onclick = doExport;
+  $('#bgFile').onchange = e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    state.uploads[file.name] = URL.createObjectURL(file);
+    state.cfg.bg = 'img:' + file.name;
+    e.target.value = '';
+    fillForm(); rebuild();
+  };
   $('#prevWeek').onclick = () => { state.week = addDays(state.week, -7); renderWeek(); };
   $('#nextWeek').onclick = () => { state.week = addDays(state.week, 7); renderWeek(); };
   $('#play').onclick = $('#bigPlay').onclick = () => (state.playing ? stop() : play());
@@ -228,9 +243,15 @@ async function searchSeed() {
 
 async function save(msg) {
   state.data.days[state.date] = structuredClone(state.cfg);
-  const r = await fetch('/api/data', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(state.data) }).catch(() => null);
+  let ok;
+  if (state.server) {
+    const r = await fetch('api/data', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(state.data) }).catch(() => null);
+    ok = !!r?.ok;
+  } else {
+    try { localStorage.setItem(STORE, JSON.stringify(state.data)); ok = true; } catch { ok = false; }
+  }
   renderWeek();
-  if (msg) status(r?.ok ? msg : 'Não consegui salvar (o servidor está rodando?).');
+  if (msg) status(ok ? (state.server ? msg : msg.replace(/\.$/, '') + ' neste navegador.') : 'Não consegui salvar.');
 }
 
 async function doExport() {
@@ -250,8 +271,13 @@ async function doExport() {
     const name = `${state.date}-${c.sim}-${c.seed}.mp4`;
     const url = URL.createObjectURL(blob);
     let where = '';
-    const res = await fetch(`/api/export?name=${encodeURIComponent(name)}`, { method: 'POST', body: blob }).catch(() => null);
-    if (res?.ok) where = `Salvo em <b>${(await res.json()).path}</b><br>`;
+    if (state.server) {
+      const res = await fetch(`api/export?name=${encodeURIComponent(name)}`, { method: 'POST', body: blob }).catch(() => null);
+      if (res?.ok) where = `Salvo em <b>${(await res.json()).path}</b><br>`;
+    } else {
+      const a = document.createElement('a'); a.href = url; a.download = name; a.click();
+      where = 'Baixado para a sua pasta de Downloads.<br>';
+    }
     c.exported = name;
     await save();
     const secs = ((performance.now() - t0) / 1000).toFixed(0);
@@ -265,12 +291,21 @@ async function doExport() {
 }
 
 // ---------- início ----------
+const STORE = 'quica-semana';
+const getJson = url => fetch(url).then(r => (r.ok ? r.json() : Promise.reject(r.status)));
+
 async function init() {
-  const [data, fundos] = await Promise.all([
-    fetch('/api/data').then(r => r.json()).catch(() => ({ days: {} })),
-    fetch('/api/fundos').then(r => r.json()).catch(() => []),
-  ]);
-  state.data = data; state.fundos = fundos;
+  // Com `npm start` existe a API local; no GitHub Pages não, e tudo fica no navegador.
+  const data = await getJson('api/data').catch(() => null);
+  state.server = !!data?.days;
+  if (state.server) {
+    state.data = data;
+    state.fundos = await getJson('api/fundos').catch(() => []);
+  } else {
+    try { state.data = JSON.parse(localStorage.getItem(STORE)) || { days: {} }; } catch { state.data = { days: {} }; }
+    state.fundos = await getJson('fundos/index.json').catch(() => []);
+  }
+  $('#mode').textContent = state.server ? 'servidor local' : 'online · salva neste navegador';
   state.cfg = state.data.days[state.date] ? structuredClone(state.data.days[state.date]) : newCfg();
   bindForm(); renderWeek(); fillForm();
   await rebuild();

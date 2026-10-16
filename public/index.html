@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Quica · vídeos que prendem</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="top">
+    <div class="brand">
+      <span class="logo">●</span>
+      <div>
+        <h1>Quica</h1>
+        <p>vídeos de física que prendem até o último segundo</p>
+      </div>
+    </div>
+    <div class="weeknav">
+      <button id="prevWeek" class="ghost" title="Semana anterior">‹</button>
+      <span id="weekLabel"></span>
+      <button id="nextWeek" class="ghost" title="Próxima semana">›</button>
+    </div>
+  </header>
+
+  <main class="layout">
+    <aside class="week" id="days"></aside>
+
+    <section class="stage">
+      <div class="phone">
+        <canvas id="preview" width="1080" height="1920"></canvas>
+        <div class="safe" id="safe" hidden>
+          <div class="safe-top">área do app</div>
+          <div class="safe-right"></div>
+          <div class="safe-bottom">legenda e botões</div>
+        </div>
+        <button class="bigplay" id="bigPlay" aria-label="Tocar">▶</button>
+      </div>
+      <div class="transport">
+        <button id="play" class="round" aria-label="Tocar">▶</button>
+        <input id="scrub" type="range" min="0" max="0" value="0">
+        <span id="clock" class="mono">0:00.0</span>
+        <button id="mute" class="ghost" title="Som">🔊</button>
+        <button id="safeBtn" class="ghost" title="Mostrar áreas cobertas pelo TikTok/Reels">▢</button>
+      </div>
+      <div class="stats" id="stats"></div>
+    </section>
+
+    <section class="panel">
+      <div class="field">
+        <label>Simulação</label>
+        <div class="cards" id="simCards"></div>
+        <p class="hint" id="simDesc"></p>
+      </div>
+      <div class="opts" id="simOpts"></div>
+
+      <div class="row">
+        <div class="field"><label for="outcome">Final desejado</label><select id="outcome"></select></div>
+        <div class="field"><label for="dur">Duração</label><select id="dur"></select></div>
+      </div>
+      <div class="seedrow">
+        <div class="field grow"><label for="seed">Seed</label><input id="seed" type="number" min="0"></div>
+        <button id="rollSeed" class="ghost" title="Seed aleatória">🎲 Outra</button>
+        <button id="findSeed" class="accent" title="Testa seeds até achar o final e a duração escolhidos">🎯 Buscar final</button>
+      </div>
+
+      <div class="row">
+        <div class="field"><label for="music">Música</label><select id="music"></select></div>
+        <div class="field"><label for="bg">Fundo</label><select id="bg"></select></div>
+      </div>
+      <div class="row">
+        <div class="field"><label for="palette">Cores</label><select id="palette"></select></div>
+        <div class="field"><label for="handle">Seu @ (opcional)</label><input id="handle" placeholder="@seuperfil"></div>
+      </div>
+
+      <div class="field">
+        <label for="hook">Gancho (aparece no início) <button class="mini" id="rollHook">🎲</button></label>
+        <input id="hook">
+      </div>
+      <div class="field">
+        <label for="cta">Texto final (troca o gancho no fim) <button class="mini" id="rollCta">🎲</button></label>
+        <input id="cta">
+      </div>
+      <div class="field">
+        <label for="caption">Legenda + hashtags <button class="mini" id="suggestCaption">✨ Sugerir</button></label>
+        <textarea id="caption" rows="5"></textarea>
+      </div>
+
+      <div class="actions">
+        <button id="save" class="ghost">💾 Salvar dia</button>
+        <button id="copyCaption" class="ghost">📋 Copiar legenda</button>
+        <button id="export" class="primary">🎬 Exportar MP4</button>
+      </div>
+      <div class="progress" id="progress" hidden><div id="bar"></div></div>
+      <p class="status" id="status"></p>
+    </section>
+  </main>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>

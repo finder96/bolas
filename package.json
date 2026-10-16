@@ -1,0 +1,13 @@
+{
+  "name": "quica",
+  "version": "1.0.0",
+  "description": "Gerador de vídeos virais de física (bolinhas) em 9:16 com trilha sincronizada e exportação MP4",
+  "private": true,
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "license": "UNLICENSED"
+}

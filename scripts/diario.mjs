@@ -1,14 +1,15 @@
 // Gera o vídeo do dia sem interface: sobe o servidor, abre o Quica num Chrome invisível,
 // escolhe a simulação/música/cores pela data, exporta o MP4 e escreve a legenda.
 //
-// Uso:  node scripts/diario.mjs [--data AAAA-MM-DD] [--sim pista] [--saida out]
+// Uso:  node scripts/diario.mjs [--data AAAA-MM-DD] [--formato liga|multiplica|decisao|guerra|classico|<simulação>] [--saida out]
+// A liga dos signos fica em liga.json (o workflow salva a tabela no repositório depois de cada corrida).
 // Variáveis: CHROME_PATH (caminho do Chrome), FFMPEG (caminho do ffmpeg, só se o Chrome não codificar AAC)
 import { spawn, execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import puppeteer from 'puppeteer-core';
-import { SIMS, mulberry32 } from '../public/sims.js';
+import { SIMS, THEMES, DECISIONS, mulberry32, textsFor } from '../public/sims.js';
 import { MELODIES } from '../public/audio.js';
 import { PALETTES, BACKGROUNDS } from '../public/render.js';
 
@@ -20,26 +21,52 @@ const outDir = path.resolve(ROOT, arg('saida', 'out'));
 const PORT = 5190 + ((Math.random() * 9) | 0);
 
 // ---------- o que entra no vídeo de hoje (mesma data = mesmas escolhas) ----------
-const ORDER = ['pista', 'labirinto', 'zona', 'plinko', 'corrida'];
+// Semana: dom/qua/sáb liga dos signos · seg multiplicação · ter "as bolinhas decidem" · qui guerra de cores · sex clássico
+const WEEK = ['liga', 'multiplica', 'decisao', 'liga', 'guerra', 'classico', 'liga'];
 const day = Math.floor(Date.parse(date + 'T00:00:00Z') / 864e5);
+const week = Math.floor(day / 7);
 const rng = mulberry32(day * 7919);
 const pick = arr => arr[(rng() * arr.length) | 0];
-const sim = arg('sim', ORDER[day % ORDER.length]);
-const def = SIMS[sim];
-if (!def) throw new Error(`simulação desconhecida: ${sim}`);
+const formato = arg('formato', arg('sim', WEEK[new Date(date + 'T00:00:00Z').getUTCDay()]));
+
+const LIGA_FILE = path.join(ROOT, 'liga.json');
+const ligas = fs.existsSync(LIGA_FILE) ? JSON.parse(fs.readFileSync(LIGA_FILE, 'utf8')) : {};
+let liga = null;
+
+function plan(f) {
+  if (f === 'liga') {
+    liga = (ligas.signos ||= { day: 0, pts: {} });
+    return { sim: 'pista', opts: { tema: 'signos', bolas: 12, perigo: 0.6 }, dur: 'medio', league: { title: `${THEMES.signos.league} · RACE ${liga.day + 1}`, pts: liga.pts } };
+  }
+  if (f === 'multiplica') return { sim: 'multiplica', dur: 'medio' };
+  if (f === 'decisao') { const ks = Object.keys(DECISIONS); return { sim: 'plinko', opts: { tema: ks[week % ks.length], bolas: 7 }, dur: 'curto' }; }
+  if (f === 'guerra') return { sim: 'guerra', opts: week % 2 ? { tema: 'cores', times: 2 } : { tema: 'paises', times: 4 }, dur: 'medio' };
+  if (f === 'classico') {
+    const sims = ['labirinto', 'zona', 'corrida', 'pista'];
+    return plan(sims[week % sims.length]);
+  }
+  if (!SIMS[f]) throw new Error(`formato desconhecido: ${f}`);
+  return { sim: f, outcome: f === 'pista' && rng() < 0.5 ? 'drama' : 'any', dur: f === 'labirinto' ? 'medio' : 'curto' };
+}
+
+const p = plan(formato);
+const def = SIMS[p.sim], tx = textsFor(p.sim, p.opts || {});
 const choice = {
-  sim,
+  sim: p.sim,
+  opts: p.opts || {},
   music: pick(Object.keys(MELODIES)),
   palette: pick(Object.keys(PALETTES)),
   bg: pick(Object.keys(BACKGROUNDS)),
-  hook: pick(def.hooks),
-  cta: pick(def.ctas),
+  hook: p.league ? `Zodiac League · Race ${liga.day + 1} 🏁` : pick(tx.hooks),
+  cta: pick(tx.ctas),
   handle: process.env.HANDLE || '',
-  outcome: sim === 'pista' && rng() < 0.5 ? 'drama' : 'any',
-  dur: sim === 'labirinto' ? 'medio' : 'curto',
+  outcome: p.outcome || 'any',
+  dur: p.dur || 'curto',
+  league: p.league || null,
   forceWav: !!process.env.FORCE_WAV,
 };
-console.log(`[${date}] ${def.name} · ${choice.music} · ${choice.palette} · ${choice.bg}`);
+const sim = p.sim;
+console.log(`[${date}] ${formato} → ${def.name} ${JSON.stringify(choice.opts)} · ${choice.music} · ${choice.palette} · ${choice.bg}`);
 console.log(`gancho: ${choice.hook}`);
 
 function findChrome() {
@@ -97,7 +124,14 @@ try {
     fs.writeFileSync(mp4, Buffer.from(r.mp4, 'base64'));
   }
   fs.writeFileSync(path.join(outDir, 'legenda.txt'), r.caption + '\n');
-  fs.writeFileSync(path.join(outDir, 'info.json'), JSON.stringify({ date, file: path.basename(mp4), ...choice, seed: r.seed, duration: r.duration, result: r.result, caption: r.caption }, null, 2));
+  if (liga && r.league) {
+    for (const x of r.league) liga.pts[x.name] = (liga.pts[x.name] || 0) + x.add;
+    liga.day++;
+    fs.writeFileSync(LIGA_FILE, JSON.stringify(ligas, null, 2) + '\n');
+    const top = Object.entries(liga.pts).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([n, v]) => `${n} ${v}`).join(' · ');
+    console.log(`liga atualizada (corrida ${liga.day}): ${top}`);
+  }
+  fs.writeFileSync(path.join(outDir, 'info.json'), JSON.stringify({ date, formato, file: path.basename(mp4), ...choice, seed: r.seed, duration: r.duration, result: r.result, league: r.league, caption: r.caption }, null, 2));
   console.log(`pronto: ${mp4} (${(fs.statSync(mp4).size / 1e6).toFixed(1)} MB)`);
 } finally {
   await browser?.close();

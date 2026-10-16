@@ -1,4 +1,4 @@
-import { SIMS, DURATIONS, FPS, W, H, runSim, findSeed, defaultsOf, fmtTime } from './sims.js';
+import { SIMS, DURATIONS, FPS, W, H, THEMES, DECISIONS, runSim, findSeed, defaultsOf, fmtTime, textsFor, outcomesFor, leagueResult, raceLabels } from './sims.js';
 import { Renderer, PALETTES, BACKGROUNDS } from './render.js';
 import { MELODIES, Player, renderAudio } from './audio.js';
 import { exportMp4 } from './exporter.js';
@@ -6,7 +6,7 @@ import { suggestCaption } from './caption.js';
 
 const $ = s => document.querySelector(s);
 const DIAS = ['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB'];
-const DEFAULT_DUR = { labirinto: 'medio', zona: 'curto', plinko: 'curto', corrida: 'curto', pista: 'curto' };
+const DEFAULT_DUR = { labirinto: 'medio', zona: 'curto', plinko: 'curto', corrida: 'curto', pista: 'curto', multiplica: 'medio', guerra: 'medio' };
 
 const iso = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 const fromIso = s => { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d); };
@@ -34,10 +34,10 @@ const renderer = new Renderer($('#preview'));
 const player = new Player();
 
 function newCfg(sim = 'labirinto') {
-  const d = SIMS[sim];
+  const d = SIMS[sim], opts = defaultsOf(d), tx = textsFor(sim, opts);
   const cfg = {
-    sim, opts: defaultsOf(d), outcome: 'any', dur: DEFAULT_DUR[sim], music: 'estrelinha', bg: 'noite',
-    palette: 'neon', handle: state.cfg?.handle || '', hook: d.hooks[0], cta: d.ctas[0], caption: '', seed: randSeed(),
+    sim, opts, outcome: 'any', dur: DEFAULT_DUR[sim], music: 'estrelinha', bg: 'noite',
+    palette: 'neon', handle: state.cfg?.handle || '', hook: tx.hooks[0], cta: tx.ctas[0], caption: '', seed: randSeed(),
   };
   cfg.caption = suggestCaption(cfg);
   return cfg;
@@ -48,7 +48,55 @@ function bgUrl(bg) {
   const name = bg.slice(4);
   return state.uploads[name] || (state.fundos.includes(name) ? 'fundos/' + encodeURIComponent(name) : null);
 }
-const style = () => ({ bg: state.cfg.bg, bgUrl: bgUrl(state.cfg.bg), palette: state.cfg.palette, hook: state.cfg.hook, cta: state.cfg.cta, handle: state.cfg.handle });
+const style = () => ({ bg: state.cfg.bg, bgUrl: bgUrl(state.cfg.bg), palette: state.cfg.palette, hook: state.cfg.hook, cta: state.cfg.cta, handle: state.cfg.handle, league: leagueStyle() });
+
+// Opções que vão para a física: no tema "nomes" o número de bolinhas/times segue a lista; na liga o vídeo ganha tempo para a tabela.
+function simOpts(c) {
+  const o = { ...c.opts };
+  if (o.tema === 'nomes') {
+    const n = String(o.nomes || '').split(/[,;\n]/).map(x => x.trim()).filter(Boolean).length;
+    if (c.sim === 'pista') o.bolas = Math.max(3, Math.min(12, n || 3));
+    if (c.sim === 'guerra') o.times = Math.max(2, Math.min(4, n || 2));
+  }
+  if (c.sim === 'pista' && c.liga) o._outro = 7.5;
+  return o;
+}
+
+// ---------- liga ----------
+const titleCase = s => s.toLowerCase().replace(/\b\w/g, m => m.toUpperCase());
+function leagueOf(c) {
+  state.data.ligas ||= {};
+  return (state.data.ligas[c.opts.tema || 'cores'] ||= { day: 0, pts: {} });
+}
+function leagueStyle() {
+  const c = state.cfg;
+  if (c.sim !== 'pista' || !c.liga) return null;
+  const L = leagueOf(c);
+  return { title: `${(THEMES[c.opts.tema] || THEMES.cores).league} · RACE ${L.day + 1}`, pts: L.pts };
+}
+function leagueHook(c) {
+  const L = leagueOf(c), T = THEMES[c.opts.tema] || THEMES.cores;
+  return `${titleCase(T.league)} · Race ${L.day + 1} 🏁`;
+}
+function renderLeagueInfo() {
+  const c = state.cfg;
+  $('#ligaRow').hidden = c.sim !== 'pista';
+  if (c.sim !== 'pista') return;
+  $('#liga').checked = !!c.liga;
+  const L = leagueOf(c), top = Object.entries(L.pts).sort((a, b) => b[1] - a[1])[0];
+  $('#ligaInfo').textContent = L.day ? `${L.day} corrida(s) · líder: ${top[0]} (${top[1]} pts)` : 'nenhuma corrida ainda';
+}
+
+// Trocou o tema (ou o modo do plinko): ajusta bolinhas, textos e finais.
+function onThemeChange() {
+  const c = state.cfg, o = c.opts;
+  if (c.sim === 'pista' && ['signos', 'paises', 'meses'].includes(o.tema)) o.bolas = 12;
+  if (c.sim === 'plinko') o.bolas = DECISIONS[o.tema] ? 7 : 8;
+  const tx = textsFor(c.sim, o);
+  c.hook = c.liga ? leagueHook(c) : tx.hooks[0]; c.cta = tx.ctas[0]; c.outcome = 'any';
+  c.caption = suggestCaption(c);
+  fillForm(); rebuild();
+}
 
 // ---------- semana ----------
 function renderWeek() {
@@ -88,9 +136,16 @@ function fillForm() {
   $('#simDesc').textContent = d.desc;
   const box = $('#simOpts'); box.innerHTML = '';
   for (const p of d.params) {
+    if (p.show && !p.show({ ...defaultsOf(d), ...c.opts })) continue;
     const f = document.createElement('div'); f.className = 'field';
     const val = c.opts[p.k] ?? p.def;
-    if (p.type === 'range') {
+    if (p.type === 'text') {
+      f.classList.add('wide');
+      f.innerHTML = `<label>${p.l}</label><input type="text" placeholder="Ana, Bia, Caio…">`;
+      const inp = f.querySelector('input');
+      inp.value = val;
+      inp.oninput = () => { c.opts[p.k] = inp.value; rebuildSoon(); };
+    } else if (p.type === 'range') {
       f.innerHTML = `<label>${p.l} <span class="v">${val}</span></label><input type="range" min="${p.min}" max="${p.max}" step="${p.step}" value="${val}">`;
       const inp = f.querySelector('input'), v = f.querySelector('.v');
       inp.oninput = () => { v.textContent = inp.value; c.opts[p.k] = Number(inp.value); rebuildSoon(); };
@@ -98,11 +153,14 @@ function fillForm() {
       f.innerHTML = `<label>${p.l}</label><select></select>`;
       const sel = f.querySelector('select');
       options(sel, p.opts, val);
-      sel.onchange = () => { c.opts[p.k] = sel.value; rebuildSoon(); };
+      sel.onchange = () => { c.opts[p.k] = sel.value; if (p.k === 'tema') onThemeChange(); else rebuildSoon(); };
     }
     box.appendChild(f);
   }
-  options($('#outcome'), d.outcomes, c.outcome);
+  const outs = outcomesFor(c.sim, { ...defaultsOf(d), ...simOpts(c) });
+  if (!outs.some(([k]) => k === c.outcome)) c.outcome = 'any';
+  options($('#outcome'), outs, c.outcome);
+  renderLeagueInfo();
   options($('#dur'), Object.entries(DURATIONS).map(([k, v]) => [k, v.name]), c.dur);
   options($('#music'), Object.entries(MELODIES).map(([k, m]) => [k, m.gen ? m.name : `${m.name} · ${m.credit}`]), c.music);
   options($('#bg'), [...Object.entries(BACKGROUNDS).map(([k, b]) => [k, b.name]), ...[...new Set([...state.fundos, ...Object.keys(state.uploads)])].map(f => ['img:' + f, '🖼 ' + f])], c.bg);
@@ -133,8 +191,21 @@ function bindForm() {
   bind('#music', 'music'); bind('#bg', 'bg'); bind('#palette', 'palette');
   bind('#hook', 'hook', true); bind('#cta', 'cta', true); bind('#handle', 'handle', true); bind('#caption', 'caption', true);
   $('#music').addEventListener('change', () => { state.cfg.caption = suggestCaption(state.cfg); $('#caption').value = state.cfg.caption; });
-  $('#rollHook').onclick = () => { state.cfg.hook = pick(SIMS[state.cfg.sim].hooks, state.cfg.hook); $('#hook').value = state.cfg.hook; drawStill(); };
-  $('#rollCta').onclick = () => { state.cfg.cta = pick(SIMS[state.cfg.sim].ctas, state.cfg.cta); $('#cta').value = state.cfg.cta; drawStill(); };
+  const tx = () => textsFor(state.cfg.sim, state.cfg.opts);
+  $('#rollHook').onclick = () => { state.cfg.hook = pick(tx().hooks, state.cfg.hook); $('#hook').value = state.cfg.hook; drawStill(); };
+  $('#rollCta').onclick = () => { state.cfg.cta = pick(tx().ctas, state.cfg.cta); $('#cta').value = state.cfg.cta; drawStill(); };
+  $('#liga').onchange = e => {
+    const c = state.cfg; c.liga = e.target.checked;
+    c.hook = c.liga ? leagueHook(c) : tx().hooks[0];
+    $('#hook').value = c.hook; renderLeagueInfo(); rebuild();
+  };
+  $('#resetLiga').onclick = () => {
+    const c = state.cfg, T = THEMES[c.opts.tema] || THEMES.cores;
+    if (!confirm(`Zerar a ${titleCase(T.league)}? Os pontos acumulados serão apagados.`)) return;
+    state.data.ligas[c.opts.tema || 'cores'] = { day: 0, pts: {} };
+    if (c.liga) { c.hook = leagueHook(c); $('#hook').value = c.hook; }
+    save('Liga zerada.'); renderLeagueInfo(); rebuild();
+  };
   $('#suggestCaption').onclick = () => { state.cfg.caption = suggestCaption(state.cfg); $('#caption').value = state.cfg.caption; };
   $('#rollSeed').onclick = () => { state.cfg.seed = randSeed(); $('#seed').value = state.cfg.seed; rebuild(); };
   $('#findSeed').onclick = searchSeed;
@@ -165,7 +236,7 @@ function rebuildSoon() { clearTimeout(rebuildTimer); rebuildTimer = setTimeout(r
 async function rebuild() {
   stop();
   const c = state.cfg;
-  state.tl = runSim(c.sim, c.opts, c.seed);
+  state.tl = runSim(c.sim, simOpts(c), c.seed);
   await renderer.setup(state.tl, style());
   const n = state.tl.frames.length;
   $('#scrub').max = n - 1;
@@ -183,7 +254,10 @@ function drawStill() {
 }
 
 function outcomeLabel(tl) {
-  const o = SIMS[tl.id].outcomes.find(([k]) => k === tl.result.outcome);
+  const o = outcomesFor(tl.id, tl.o).find(([k]) => k === tl.result.outcome);
+  if (tl.id === 'plinko' && tl.result.answer != null) return `${o[1]} · ${tl.result.counts.join(' / ')}`;
+  if (tl.id === 'multiplica') return `${o ? o[1].toLowerCase() : ''} · pico de ${tl.result.peak}`;
+  if (tl.id === 'guerra') { const tot = tl.result.counts.reduce((a, b) => a + b, 0); return `${o ? o[1] : ''} · ${tl.result.counts.map(x => Math.round(x / tot * 100) + '%').join(' / ')}`; }
   if (tl.id === 'plinko') return `${tl.result.good} salvas · ${tl.result.bad} na vermelha${o ? ' · ' + o[1].toLowerCase() : ''}`;
   if (tl.id === 'labirinto') return 'escapou';
   if (tl.id === 'pista') return `${o ? o[1].toLowerCase() : tl.result.outcome} · ${tl.result.elim} de ${tl.result.n} eliminadas`;
@@ -228,7 +302,7 @@ function setBusy(b) { state.busy = b; for (const id of ['#export', '#findSeed', 
 async function searchSeed() {
   stop(); setBusy(true);
   const c = state.cfg;
-  const seed = await findSeed(c.sim, c.opts, c.outcome, DURATIONS[c.dur].range, n => status(`Testando seeds… ${n}`));
+  const seed = await findSeed(c.sim, simOpts(c), c.outcome, DURATIONS[c.dur].range, n => status(`Testando seeds… ${n}`));
   setBusy(false);
   if (seed === null) { status('Não achei nenhuma seed com esse final e essa duração. Tente outra duração ou ajuste as opções.'); return; }
   c.seed = seed; $('#seed').value = seed;
@@ -274,6 +348,13 @@ async function doExport() {
       where = 'Baixado para a sua pasta de Downloads.<br>';
     }
     c.exported = name;
+    if (c.sim === 'pista' && c.liga && !tl.timeout) {
+      const L = leagueOf(c);
+      for (const x of leagueResult(tl)) L.pts[x.name] = (L.pts[x.name] || 0) + x.add;
+      L.day++;
+      c.hook = leagueHook(c); $('#hook').value = c.hook;
+      renderLeagueInfo();
+    }
     await save();
     const secs = ((performance.now() - t0) / 1000).toFixed(0);
     status(`${where}<a href="${url}" download="${name}">Baixar ${name}</a> · ${(blob.size / 1e6).toFixed(1)} MB · ${secs}s` +

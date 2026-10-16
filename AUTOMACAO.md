@@ -5,15 +5,25 @@ Anotações do que já está pronto e do que falta para os vídeos saírem sozin
 ## O que já funciona
 
 - **Todo dia às 8h (Brasília)**, o workflow [Vídeo do dia](.github/workflows/diario.yml) gera um vídeo novo no GitHub, mesmo com o PC desligado.
-  - A simulação segue um rodízio (pista → labirinto → zona → plinko → corrida). A música, as cores, o fundo e o gancho variam pela data: a mesma data sempre gera as mesmas escolhas.
-  - Ele busca uma seed com bom final e boa duração (na pista, metade dos dias tem "drama", com metade ou mais das bolinhas eliminadas).
+  - O formato segue um **rodízio semanal**. A música, as cores, o fundo e o gancho variam pela data: a mesma data sempre gera as mesmas escolhas.
+
+    | Dia | Formato |
+    |---|---|
+    | Domingo, quarta, sábado | 🏆 **Zodiac League**: corrida dos 12 signos com tabela de pontos acumulada |
+    | Segunda | 🤯 Multiplicação (chega a 1.000 ou esvazia?) |
+    | Terça | 💀 "Let the balls decide": jantar, ex, férias, 2027, fim de semana (um tema por semana) |
+    | Quinta | 🗺️ Guerra de cores (alterna países com 4 times e cores com 2 times) |
+    | Sexta | Clássico em rodízio: labirinto, zona vermelha, corrida de cores, pista |
+
+  - Ele busca uma seed com bom final e boa duração.
+  - **Liga:** a tabela fica em `liga.json`. Depois de cada corrida da liga, o workflow soma os pontos (10, 7, 5, 4, 3, 2 e 1 do 7º em diante; eliminado faz 0) e salva o arquivo no repositório. Para recomeçar a temporada, apague o `liga.json`.
 - Cada vídeo vira uma **Release** do repositório, com:
   - o MP4 (1080×1920, H.264 + AAC) num **link público**;
   - `legenda.txt` com a legenda em inglês e as hashtags;
   - `info.json` com as escolhas do dia (simulação, seed, música, resultado).
 - Primeiro vídeo gerado: [video-2026-10-16-2](https://github.com/finder96/bolas/releases/tag/video-2026-10-16-2).
-- **Gerar fora do horário:** *Actions → Vídeo do dia → Run workflow*. Dá para escolher a simulação.
-- **Gerar no PC:** `npm install` uma vez e depois `npm run diario` (opções: `-- --sim pista`, `-- --data 2026-10-20`). O vídeo sai em `out/`.
+- **Gerar fora do horário:** *Actions → Vídeo do dia → Run workflow*. Dá para escolher o formato (`liga`, `multiplica`, `decisao`, `guerra`, `classico` ou uma simulação).
+- **Gerar no PC:** `npm install` uma vez e depois `npm run diario` (opções: `-- --formato guerra`, `-- --data 2026-10-20`). O vídeo sai em `out/`.
 
 ### Como funciona por dentro
 

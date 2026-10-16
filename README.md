@@ -32,9 +32,11 @@ Depois abra http://localhost:5178 no Chrome (a exportação usa WebCodecs, que e
 |---|---|
 | 🌀 Fuga do labirinto | camadas giratórias com fresta; cada fuga quebra uma camada |
 | 🎯 Zona vermelha | a bolinha cresce a cada quique; escapa pela saída ou toca no vermelho |
-| 💀 Chuva de bolinhas | plinko: quantas caem na zona vermelha? A última vem em câmera lenta |
+| 💀 Chuva de bolinhas | plinko: quantas caem na zona vermelha? A última vem em câmera lenta. **Modo decisão**: as casas viram respostas ("Let the balls pick your dinner", "Should you text your ex?"…) |
 | 🏁 Corrida de cores | 2 a 4 cores; a primeira a escapar de todas as camadas vence |
-| 🏁 Corrida na pista | 3 a 8 bolinhas numa pista gerada pela seed: largada, rampas, pinos, pás, funil, bumpers; buracos, minas, pás vermelhas e serras eliminam; a primeira a cruzar a chegada vence |
+| 🏁 Corrida na pista | 3 a 12 bolinhas numa pista gerada pela seed: largada, rampas, pinos, pás, funil, bumpers; buracos, minas, pás vermelhas e serras eliminam; a primeira a cruzar a chegada vence. Temas: cores, signos, países, mês de nascimento ou nomes dos comentários. **Modo liga**: tabela de pontos acumulada no fim do vídeo |
+| 🤯 Multiplicação | cada quique pode virar +1 bolinha, mas a saída vai abrindo: chega a 1.000 ou esvazia? |
+| 🗺️ Guerra de cores | 2 a 4 times pintam o mapa ao bater nas casas dos outros; quem domina quando o tempo acaba (aceita os mesmos temas da pista) |
 
 A **seed** define o vídeo inteiro: a mesma seed sempre gera o mesmo vídeo. **🎯 Buscar final** testa seeds até achar o desfecho e a duração escolhidos.
 

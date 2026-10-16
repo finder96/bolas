@@ -1,6 +1,6 @@
 // Modo automático: gera um vídeo completo sem interface (usado pelo scripts/diario.mjs).
-// Expõe window.quica.auto(opções) → { mp4, wav, seed, duration, result, caption } (arquivos em base64).
-import { SIMS, DURATIONS, W, H, runSim, findSeed, defaultsOf } from './sims.js';
+// Expõe window.quica.auto(opções) → { mp4, wav, seed, duration, result, caption, league } (arquivos em base64).
+import { SIMS, DURATIONS, W, H, runSim, findSeed, defaultsOf, leagueResult } from './sims.js';
 import { Renderer } from './render.js';
 import { renderAudio } from './audio.js';
 import { exportMp4 } from './exporter.js';
@@ -32,12 +32,13 @@ const base64 = blob => new Promise((res, rej) => {
 
 export async function auto(o) {
   const def = SIMS[o.sim];
-  const opts = { ...defaultsOf(def), ...(o.opts || {}) };
+  // na liga o vídeo ganha alguns segundos no fim para a tabela de pontos
+  const opts = { ...defaultsOf(def), ...(o.opts || {}), ...(o.league ? { _outro: 7.5 } : {}) };
   let seed = await findSeed(o.sim, opts, o.outcome || 'any', DURATIONS[o.dur || 'curto'].range, null, 800);
   if (seed === null) seed = await findSeed(o.sim, opts, 'any', DURATIONS.livre.range, null, 800);
   if (seed === null) throw new Error('nenhuma seed terminou a tempo');
   const tl = runSim(o.sim, opts, seed);
-  const st = { bg: o.bg, bgUrl: null, palette: o.palette, hook: o.hook, cta: o.cta, handle: o.handle || '' };
+  const st = { bg: o.bg, bgUrl: null, palette: o.palette, hook: o.hook, cta: o.cta, handle: o.handle || '', league: o.league || null };
   const cv = document.createElement('canvas'); cv.width = W; cv.height = H;
   const r = new Renderer(cv);
   await r.setup(tl, st);
@@ -48,7 +49,8 @@ export async function auto(o) {
     mp4: await base64(blob),
     wav: needWav ? await base64(wavBlob(audio)) : null,
     hasAudio, seed, duration: tl.duration, result: tl.result,
-    caption: suggestCaption({ hook: o.hook, music: o.music, sim: o.sim }),
+    league: o.league ? leagueResult(tl).map(({ name, add }) => ({ name, add })) : null,
+    caption: suggestCaption({ hook: o.hook, music: o.music, sim: o.sim, opts }),
   };
 }
 

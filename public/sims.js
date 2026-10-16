@@ -20,7 +20,83 @@ export const RACE = [
   { k: 'ciano', n: 'Cyan', pt: 'Ciano', c: '#4de8ff' },
   { k: 'branco', n: 'White', pt: 'Branco', c: '#f2f2f2' },
   { k: 'azul', n: 'Blue', pt: 'Azul', c: '#4d7cff' },
+  { k: 'lima', n: 'Lime', pt: 'Lima', c: '#b8f53d' },
+  { k: 'turquesa', n: 'Teal', pt: 'Turquesa', c: '#2ec4b6' },
+  { k: 'magenta', n: 'Magenta', pt: 'Magenta', c: '#e040fb' },
+  { k: 'bronze', n: 'Bronze', pt: 'Bronze', c: '#d4945a' },
 ];
+
+// Temas: cada bolinha/time vira algo que o público defende (signo, país, mês, nome dos comentários).
+export const THEMES = {
+  cores: { name: 'Cores', league: 'COLOR LEAGUE', tags: '#pickacolor' },
+  signos: {
+    name: 'Signos', league: 'ZODIAC LEAGUE', tags: '#zodiac #astrology #zodiacsigns',
+    names: ['Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo', 'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces'],
+    short: ['ARI', 'TAU', 'GEM', 'CAN', 'LEO', 'VIR', 'LIB', 'SCO', 'SAG', 'CAP', 'AQU', 'PIS'],
+    hooks: ['Which zodiac sign wins? 🏁', 'Find your sign and watch till the end 👀', 'Your sign is in this race… 😬'],
+    ctas: ['Did your sign win? 👇', 'Comment your sign for the next race ✨', 'Which sign deserved it? 👇'],
+  },
+  paises: {
+    name: 'Países', league: 'WORLD LEAGUE', tags: '#countries #geography #worldcup',
+    names: ['Brazil', 'USA', 'Japan', 'France', 'Mexico', 'Germany', 'India', 'England', 'Italy', 'Spain', 'Canada', 'Argentina'],
+    short: ['BRA', 'USA', 'JPN', 'FRA', 'MEX', 'GER', 'IND', 'ENG', 'ITA', 'ESP', 'CAN', 'ARG'],
+    hooks: ['Which country wins? 🌍', 'Find your country and watch till the end 👀', 'Your country is in this race 🏁'],
+    ctas: ['Did your country win? 👇', 'Comment your country for the next race 🌍', 'Which country should join next? 👇'],
+  },
+  meses: {
+    name: 'Mês de nascimento', league: 'BIRTH MONTH LEAGUE', tags: '#birthmonth #birthday',
+    names: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
+    short: ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'],
+    hooks: ['Which birth month wins? 🎂', 'Find your birth month 👇', 'Your birth month is racing… 😬'],
+    ctas: ['Did your month win? 👇', 'Comment your birth month 🎂', 'Which month should win next? 👇'],
+  },
+  nomes: {
+    name: 'Nomes dos comentários', league: 'NAME LEAGUE', tags: '#yournameinthevideo #comments',
+    hooks: ['Your name is in this race 👀', 'Commented your name? Find it here 👇'],
+    ctas: ['Comment your name to join the next race 👇', 'Did your name win? 👇'],
+  },
+};
+const THEME_OPTS = Object.entries(THEMES).map(([k, t]) => [k, t.name]);
+
+// Rótulos de cada bolinha/time no tema escolhido: nome, sigla (vai dentro da bolinha) e cor.
+export function raceLabels(o) {
+  const T = THEMES[o?.tema] || THEMES.cores;
+  let names = T.names, short = T.short;
+  if (o?.tema === 'nomes') {
+    names = String(o.nomes || '').split(/[,;\n]/).map(x => x.trim()).filter(Boolean).slice(0, RACE.length);
+    short = names.map(x => x.slice(0, 3).toUpperCase());
+  }
+  return RACE.map((r, k) => ({ key: r.k, name: names?.[k] || r.n, short: short?.[k] || '', color: r.c }));
+}
+
+// "Deixe as bolinhas decidirem": cada casa do plinko é uma resposta.
+export const DECISIONS = {
+  jantar: {
+    name: 'Jantar de hoje', answers: [['Pizza', '🍕'], ['Sushi', '🍣'], ['Burger', '🍔'], ['Tacos', '🌮'], ['Pasta', '🍝']],
+    hooks: ['Let the balls pick your dinner 🍕', 'Tonight’s dinner is decided by the balls 🍽️'],
+    ctas: ['What are you eating tonight? 👇', 'Comment what you got 🍕'],
+  },
+  ex: {
+    name: 'Mandar msg pro ex?', answers: [['YES', '✅'], ['NO', '❌'], ['BLOCK', '🚫']],
+    hooks: ['Should you text your ex? Let the balls decide 📱', 'The balls decide: text your ex or not? 😬'],
+    ctas: ['Are you texting them? 👇', 'Comment what you got 👇'],
+  },
+  ferias: {
+    name: 'Próximas férias', answers: [['Beach', '🏖️'], ['Mountains', '🏔️'], ['City', '🏙️'], ['Stay home', '🛋️']],
+    hooks: ['Let the balls pick your next vacation ✈️', 'Where are you going next? The balls decide 🌍'],
+    ctas: ['Where are you going? 👇', 'Comment your destination ✈️'],
+  },
+  ano: {
+    name: 'O que 2027 traz', answers: [['Money', '💸'], ['Love', '❤️'], ['Travel', '✈️'], ['Glow up', '✨'], ['Chaos', '🌪️']],
+    hooks: ['What will 2027 bring you? 🔮', 'The balls predict your 2027 🔮'],
+    ctas: ['What did you get? 👇', 'Screenshot your 2027 📸'],
+  },
+  fds: {
+    name: 'Fim de semana', answers: [['Party', '🎉'], ['Sleep', '😴'], ['Work', '💼'], ['Date', '💕']],
+    hooks: ['How will your weekend go? 🎲', 'The balls decide your weekend 🎲'],
+    ctas: ['What did you get? 👇', 'Tag who you’re spending it with 👇'],
+  },
+};
 
 export const PLINKO = { rows: 12, sp: 72, top: 520, pegR: 8, ballR: 13, binTop: 1262, floor: 1440, landY: 1275 };
 
@@ -265,11 +341,14 @@ export const SIMS = {
     name: 'Chuva de bolinhas', icon: '💀',
     desc: 'Bolinhas caem uma a uma pelos pinos. Quantas vão parar na zona vermelha?',
     params: [
+      { k: 'tema', l: 'Modo', type: 'select', def: 'zona', opts: [['zona', 'Zona vermelha'], ...Object.entries(DECISIONS).map(([k, d]) => [k, 'Decida: ' + d.name])] },
       { k: 'bolas', l: 'Bolinhas', type: 'range', min: 3, max: 10, step: 1, def: 8 },
-      { k: 'zona', l: 'Zona vermelha', type: 'select', def: '1', opts: [['1', '1 casa no centro'], ['3', '3 casas no centro'], ['bordas', 'Casas das bordas']] },
+      { k: 'zona', l: 'Zona vermelha', type: 'select', def: '1', opts: [['1', '1 casa no centro'], ['3', '3 casas no centro'], ['bordas', 'Casas das bordas']], show: o => !DECISIONS[o.tema] },
       { k: 'intervalo', l: 'Intervalo entre bolinhas (s)', type: 'range', min: 1, max: 3.5, step: 0.1, def: 2 },
     ],
-    outcomes: [['any', 'Aleatório'], ['ultima_ruim', 'A última cai na vermelha'], ['ultima_boa', 'A última se salva'], ['nenhuma', 'Nenhuma cai na vermelha']],
+    outcomes: o => (DECISIONS[o.tema]
+      ? [['any', 'Aleatório'], ...DECISIONS[o.tema].answers.map(([t], i) => ['a' + i, 'Resposta: ' + t])]
+      : [['any', 'Aleatório'], ['ultima_ruim', 'A última cai na vermelha'], ['ultima_boa', 'A última se salva'], ['nenhuma', 'Nenhuma cai na vermelha']]),
     hooks: ['How many will land in the red zone? 💀', 'Guess a number before it ends 👇', 'The last one decides everything… 😬'],
     ctas: ['What was your guess? 👇', 'Did you call the score? Comment 👇', 'Watch again and guess again 🔁'],
     tags: '#plinko #luck #balls',
@@ -282,7 +361,11 @@ export const SIMS = {
         for (let k = 0; k < count; k++) s.pegs.push({ x: CX + (k - (count - 1) / 2) * P.sp, y: P.top + j * P.sp * 0.9, row: j });
       }
       s.glow = new Float32Array(s.pegs.length);
-      s.red = new Set(o.zona === '3' ? [5, 6, 7] : o.zona === 'bordas' ? [0, 1, 11, 12] : [6]);
+      s.answers = DECISIONS[o.tema]?.answers || null;
+      // casas alternadas entre as respostas: todas têm chance parecida (o centro não favorece uma só)
+      s.slotAns = s.answers ? Array.from({ length: 13 }, (_, i) => i % s.answers.length) : null;
+      s.ans = s.answers ? new Array(s.answers.length).fill(0) : null;
+      s.red = s.answers ? new Set() : new Set(o.zona === '3' ? [5, 6, 7] : o.zona === 'bordas' ? [0, 1, 11, 12] : [6]);
       s.balls = []; s.counts = new Array(13).fill(0); s.dropped = 0; s.next = 0.6; s.good = 0; s.bad = 0; s.o = o;
     },
     step(s, dt, emit, rng) {
@@ -318,8 +401,15 @@ export const SIMS = {
           const slot = Math.max(0, Math.min(12, Math.round((b.x - CX) / P.sp) + 6));
           b.landed = true; b.slot = slot; b.stack = s.counts[slot]++; b.red = s.red.has(slot);
           if (b.red) s.bad++; else s.good++;
-          burst(s, rng, CX + (slot - 6) * P.sp, P.binTop + 30, 26, b.red ? -2 : b.c, 420, 0.8);
-          if (s.dropped === o.bolas && s.balls.every(x => x.landed)) {
+          if (s.answers) { b.ans = s.slotAns[slot]; s.ans[b.ans]++; }
+          const pc = s.answers ? b.ans / Math.max(1, s.answers.length - 1) : b.c;
+          burst(s, rng, CX + (slot - 6) * P.sp, P.binTop + 30, 26, b.red ? -2 : pc, 420, 0.8);
+          if (s.answers && s.dropped === o.bolas && s.balls.every(x => x.landed)) {
+            const max = Math.max(...s.ans), win = s.ans[b.ans] === max ? b.ans : s.ans.indexOf(max);
+            s.done = true; s.outcome = 'a' + win;
+            s.result = { outcome: s.outcome, answer: win, counts: [...s.ans] };
+            emit('win', { soft: true });
+          } else if (s.dropped === o.bolas && s.balls.every(x => x.landed)) {
             s.done = true; s.outcome = b.red ? 'ultima_ruim' : 'ultima_boa';
             s.result = { outcome: s.outcome, good: s.good, bad: s.bad };
             emit(b.red ? 'lose' : 'win', { soft: true });
@@ -329,10 +419,10 @@ export const SIMS = {
       const last = s.balls[o.bolas - 1];
       s.timeScale = o.bolas > 1 && last && !last.landed && last.y > 780 ? 0.45 : 1;
     },
-    geo: s => ({ pegs: s.pegs, red: [...s.red] }),
+    geo: s => ({ pegs: s.pegs, red: [...s.red], answers: s.answers, slotAns: s.slotAns }),
     snap: s => ({
-      balls: s.balls.map(b => snapBall(b, { landed: !!b.landed, slot: b.slot, stack: b.stack, red: b.red })),
-      glow: Float32Array.from(s.glow), good: s.good, bad: s.bad, slow: s.timeScale < 1, parts: snapParts(s),
+      balls: s.balls.map(b => snapBall(b, { landed: !!b.landed, slot: b.slot, stack: b.stack, red: b.red, ans: b.ans })),
+      glow: Float32Array.from(s.glow), good: s.good, bad: s.bad, ans: s.ans ? [...s.ans] : null, slow: s.timeScale < 1, parts: snapParts(s),
     }),
   },
 
@@ -550,11 +640,14 @@ const PISTA = {
   name: 'Corrida na pista', icon: '🏁',
   desc: 'Pista gerada pela seed: largada, obstáculos, armadilhas que eliminam e linha de chegada.',
   params: [
-    { k: 'bolas', l: 'Bolinhas', type: 'range', min: 3, max: 8, step: 1, def: 6 },
+    { k: 'tema', l: 'Tema', type: 'select', def: 'cores', opts: THEME_OPTS },
+    { k: 'nomes', l: 'Nomes (separe por vírgula)', type: 'text', def: '', show: o => o.tema === 'nomes' },
+    { k: 'bolas', l: 'Bolinhas', type: 'range', min: 3, max: 12, step: 1, def: 6 },
     { k: 'tamanho', l: 'Tamanho da pista', type: 'select', def: 'media', opts: [['curta', 'Curta'], ['media', 'Média'], ['longa', 'Longa']] },
     { k: 'perigo', l: 'Armadilhas', type: 'range', min: 0, max: 2, step: 0.25, def: 1 },
   ],
-  outcomes: [['any', 'Aleatório'], ['drama', 'Metade ou mais eliminada'], ...RACE.map(r => [r.k, `${r.pt} vence`])],
+  outcomes: o => [['any', 'Aleatório'], ['drama', 'Metade ou mais eliminada'],
+    ...raceLabels(o).slice(0, o.bolas).map((l, k) => [l.key, `${o.tema === 'cores' ? RACE[k].pt : l.name} vence`])],
   hooks: ['Pick your marble before the race 👇', 'Only one gets to the finish first… 🏁', 'Which color survives the track? 💀', 'Comment your color and watch till the end 👇'],
   ctas: ['Did your marble win? 👇', 'Comment your color for the next race 🏁', 'Rematch? Pick a new color 🔁'],
   tags: '#marblerace #marbles #race #pickacolor',
@@ -569,7 +662,8 @@ const PISTA = {
     s.sawMap = bucketize(T.saws, p => p.y - p.r, p => p.y + p.r);
     s.holeMap = bucketize(T.holes, h => h.y1, h => h.y2);
     const order = [...Array(o.bolas).keys()].sort(() => rng() - 0.5);
-    const { X0, X1, gateY, ballR } = TRACK, gap = (X1 - X0 - 240) / Math.max(1, o.bolas - 1);
+    const { X0, X1, gateY } = TRACK, gap = (X1 - X0 - 240) / Math.max(1, o.bolas - 1);
+    const ballR = o.tema && o.tema !== 'cores' ? 19 : TRACK.ballR; // maior para caber a sigla
     s.balls = order.map((k, i) => ({
       x: X0 + 120 + i * gap + (rng() - 0.5) * 6, y: gateY - ballR - 1, vx: 0, vy: 0, r: ballR, c: -10 - k, k,
       alive: true, fin: false, place: 0, still: 0, elimT: null,
@@ -651,6 +745,191 @@ const PISTA = {
 };
 SIMS.pista = PISTA;
 
+// ---------- multiplicação: cada quique pode virar +1 bolinha, e a saída vai abrindo ----------
+export const MULTI = { R: 430, r: 8 };
+const newDot = (x, y, speed, ang, c) => {
+  const vx = Math.cos(ang) * speed, vy = Math.sin(ang) * speed;
+  return { x, y, vx, vy, c, E: 0.5 * speed * speed - G * y, out: false };
+};
+
+SIMS.multiplica = {
+  name: 'Multiplicação', icon: '🤯', sub: 2,
+  desc: 'Cada quique pode virar +1 bolinha, mas a saída vai abrindo. Chega na meta ou esvazia?',
+  params: [
+    { k: 'alvo', l: 'Meta', type: 'select', def: '1000', opts: [['500', '500'], ['1000', '1.000'], ['2000', '2.000']] },
+    { k: 'chance', l: 'Chance de multiplicar', type: 'range', min: 0.1, max: 0.4, step: 0.02, def: 0.28 },
+    { k: 'abertura', l: 'Velocidade da saída abrindo', type: 'range', min: 0.5, max: 2, step: 0.1, def: 1.2 },
+  ],
+  outcomes: [['any', 'Aleatório'], ['chegou', 'Chega na meta'], ['acabou', 'Esvazia antes']],
+  hooks: ['Every bounce = +1 ball. Will it reach 1,000? 🤯', '1 ball becomes 1,000… or zero 😬', 'Will it hit 1,000 before they all escape?'],
+  ctas: ['Did you think it would make it? 👇', 'Guess the highest count 👇', 'Watch again and count 🔁'],
+  tags: '#chaos #1000balls #satisfyingvideo',
+  create(s, rng, o) {
+    s.o = o; s.target = Number(o.alvo); s.ang = rng() * TAU; s.om = (rng() < 0.5 ? -1 : 1) * 0.7;
+    s.gapW = 0; s.peak = 1; s.count = 1; s.lastNote = -1; s.mile = 0;
+    s.balls = [newDot(CX, CY - 150, 900, rng() * TAU, 0)];
+  },
+  step(s, dt, emit, rng) {
+    const { R, r } = MULTI, o = s.o;
+    s.ang += s.om * dt;
+    if (!s.done) s.gapW = s.time < 4 ? 0 : Math.min(2.4, 0.12 + 0.03 * o.abertura * (s.time - 4));
+    const keep = [], born = [];
+    for (const b of s.balls) {
+      b.vy += G * dt; b.x += b.vx * dt; b.y += b.vy * dt;
+      if (b.out) { if (b.y < H + 40) keep.push(b); continue; }
+      const dx = b.x - CX, dy = b.y - CY, d = Math.hypot(dx, dy);
+      if (d > R - r) {
+        if (s.gapW > 0 && angDiff(Math.atan2(dy, dx), s.ang) < s.gapW / 2) { b.out = true; keep.push(b); continue; }
+        const nx = dx / d, ny = dy / d, vn = b.vx * nx + b.vy * ny;
+        b.x = CX + nx * (R - r); b.y = CY + ny * (R - r);
+        if (vn > 0) {
+          b.vx -= 2 * vn * nx; b.vy -= 2 * vn * ny; keepEnergy(b);
+          if (!s.done && rng() < o.chance && s.balls.length + born.length < s.target * 1.6) {
+            const j = (rng() - 0.5) * 1.6, c = Math.cos(j), sn = Math.sin(j);
+            const nb = { ...b, vx: b.vx * c - b.vy * sn, vy: b.vx * sn + b.vy * c, c: (b.c + 0.045) % 1 };
+            born.push(nb);
+          }
+          if (s.time - s.lastNote > 0.06) { s.lastNote = s.time; emit('hit'); }
+        }
+      }
+      keep.push(b);
+    }
+    s.balls = keep.concat(born);
+    let inside = 0;
+    for (const b of s.balls) if (!b.out) inside++;
+    s.count = inside; s.peak = Math.max(s.peak, inside);
+    const MILES = [10, 50, 100, 250, 500, 750, 1000, 1500, 2000];
+    while (s.mile < MILES.length && inside >= MILES[s.mile] && MILES[s.mile] < s.target) { s.mile++; emit('pass'); }
+    if (!s.done) {
+      if (inside >= s.target) {
+        s.done = true; s.outcome = 'chegou'; emit('win');
+        burst(s, rng, CX, CY, 140, -3, 1100, 1.8);
+      } else if (inside === 0) {
+        s.done = true; s.outcome = 'acabou'; emit('lose');
+      }
+      if (s.done) s.result = { outcome: s.outcome, peak: s.peak };
+    }
+  },
+  geo: s => ({ R: MULTI.R, target: s.target }),
+  snap: s => {
+    const pts = new Float32Array(s.balls.length * 3);
+    s.balls.forEach((b, i) => { pts[i * 3] = b.x; pts[i * 3 + 1] = b.y; pts[i * 3 + 2] = b.c; });
+    return { pts, count: s.count, peak: s.peak, ang: s.ang, gapW: s.gapW, parts: snapParts(s) };
+  },
+};
+
+// ---------- guerra de cores: cada bolinha pinta o mapa ao bater nas casas dos outros ----------
+export const ARENA = { N: 24, cell: 40, X: 60, Y: 520 };
+
+SIMS.guerra = {
+  name: 'Guerra de cores', icon: '🗺️', sub: 4,
+  desc: 'Cada bolinha conquista as casas dos outros times. Quem domina o mapa quando o tempo acabar?',
+  params: [
+    { k: 'tema', l: 'Tema', type: 'select', def: 'cores', opts: THEME_OPTS },
+    { k: 'nomes', l: 'Nomes (separe por vírgula)', type: 'text', def: '', show: o => o.tema === 'nomes' },
+    { k: 'times', l: 'Times', type: 'range', min: 2, max: 4, step: 1, def: 4 },
+    { k: 'porTime', l: 'Bolinhas por time', type: 'range', min: 1, max: 3, step: 1, def: 2 },
+    { k: 'tempo', l: 'Tempo (s)', type: 'range', min: 15, max: 60, step: 5, def: 30 },
+  ],
+  outcomes: o => [['any', 'Aleatório'], ...raceLabels(o).slice(0, o.times).map((l, k) => [l.key, `${o.tema === 'cores' ? RACE[k].pt : l.name} domina`])],
+  hooks: ['Which color takes over the map? 🗺️', 'Pick a color and watch till the end 👇', 'Who controls the map when time runs out? ⏱️'],
+  ctas: ['Did your color win? 👇', 'Comment your color for the rematch 🔁', 'Which team should join next? 👇'],
+  tags: '#pongwars #territory #colorwar',
+  create(s, rng, o) {
+    const { N, cell, X, Y } = ARENA, T = o.times | 0, half = (N * cell) / 2;
+    s.o = o; s.T = T; s.cells = new Uint8Array(N * N); s.lastNote = -1; s.limit = o.tempo;
+    const rot = rng() * TAU;
+    for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) {
+      const a = Math.atan2(j + 0.5 - N / 2, i + 0.5 - N / 2) - rot;
+      s.cells[j * N + i] = Math.floor((((a % TAU) + TAU) % TAU) / TAU * T) % T;
+    }
+    s.balls = [];
+    for (let t = 0; t < T; t++) for (let n = 0; n < o.porTime; n++) {
+      const a = rot + (t + 0.3 + 0.4 * rng()) * TAU / T, rr = 150 + n * 110 + rng() * 40, sp = 980;
+      const ang = rng() * TAU;
+      s.balls.push({ x: X + half + Math.cos(a) * rr, y: Y + half + Math.sin(a) * rr, vx: Math.cos(ang) * sp, vy: Math.sin(ang) * sp, sp, r: 14, team: t });
+    }
+    s.counts = new Array(T).fill(0);
+    for (const c of s.cells) s.counts[c]++;
+  },
+  step(s, dt, emit, rng) {
+    if (s.done) return;
+    const { N, cell, X, Y } = ARENA, size = N * cell;
+    for (const b of s.balls) {
+      b.x += b.vx * dt; b.y += b.vy * dt;
+      if (b.x < X + b.r) { b.x = X + b.r; b.vx = Math.abs(b.vx); }
+      if (b.x > X + size - b.r) { b.x = X + size - b.r; b.vx = -Math.abs(b.vx); }
+      if (b.y < Y + b.r) { b.y = Y + b.r; b.vy = Math.abs(b.vy); }
+      if (b.y > Y + size - b.r) { b.y = Y + size - b.r; b.vy = -Math.abs(b.vy); }
+      const i0 = Math.max(0, Math.floor((b.x - b.r - X) / cell)), i1 = Math.min(N - 1, Math.floor((b.x + b.r - X) / cell));
+      const j0 = Math.max(0, Math.floor((b.y - b.r - Y) / cell)), j1 = Math.min(N - 1, Math.floor((b.y + b.r - Y) / cell));
+      let nx = 0, ny = 0, hit = false;
+      for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++) {
+        const idx = j * N + i, owner = s.cells[idx];
+        if (owner === b.team) continue;
+        const cx0 = X + i * cell, cy0 = Y + j * cell;
+        const px = Math.max(cx0, Math.min(b.x, cx0 + cell)), py = Math.max(cy0, Math.min(b.y, cy0 + cell));
+        const dx = b.x - px, dy = b.y - py, d2 = dx * dx + dy * dy;
+        if (d2 >= b.r * b.r) continue;
+        s.cells[idx] = b.team; s.counts[owner]--; s.counts[b.team]++; hit = true;
+        if (d2 > 1e-9) { const d = Math.sqrt(d2); nx += dx / d; ny += dy / d; } else { nx -= b.vx; ny -= b.vy; }
+      }
+      if (hit) {
+        const L = Math.hypot(nx, ny) || 1; nx /= L; ny /= L;
+        const vn = b.vx * nx + b.vy * ny;
+        if (vn < 0) { b.vx -= 2 * vn * nx; b.vy -= 2 * vn * ny; }
+        const j = (rng() - 0.5) * 0.1, c = Math.cos(j), sn = Math.sin(j);
+        [b.vx, b.vy] = [b.vx * c - b.vy * sn, b.vx * sn + b.vy * c];
+        const k = b.sp / (Math.hypot(b.vx, b.vy) || 1); b.vx *= k; b.vy *= k;
+        if (s.time - s.lastNote > 0.05) { s.lastNote = s.time; emit('hit'); }
+      }
+    }
+    if (s.time >= s.limit) {
+      const max = Math.max(...s.counts), w = s.counts.indexOf(max);
+      s.done = true; s.winner = w; s.outcome = RACE[w].k;
+      s.result = { outcome: s.outcome, counts: [...s.counts] };
+      const half = size / 2;
+      burst(s, rng, X + half, Y + half, 140, -10 - w, 1100, 1.8);
+      emit('win', { k: w });
+    }
+  },
+  geo: s => ({ T: s.T, limit: s.limit }),
+  snap: s => ({
+    cells: Uint8Array.from(s.cells), balls: s.balls.map(b => ({ x: b.x, y: b.y, r: b.r, team: b.team })),
+    counts: [...s.counts], left: Math.max(0, s.limit - s.time), parts: snapParts(s),
+  }),
+};
+
+// ---------- textos e opções que dependem do tema ----------
+export function textsFor(id, o) {
+  const def = SIMS[id], T = THEMES[o?.tema], D = DECISIONS[o?.tema];
+  if ((id === 'pista' || id === 'guerra') && T?.hooks) return { hooks: T.hooks, ctas: T.ctas, tags: `${def.tags} ${T.tags}` };
+  if (id === 'plinko' && D) return { hooks: D.hooks, ctas: D.ctas, tags: '#letthebalsdecide #plinko #pov' };
+  return { hooks: def.hooks, ctas: def.ctas, tags: def.tags };
+}
+export const outcomesFor = (id, o) => (typeof SIMS[id].outcomes === 'function' ? SIMS[id].outcomes(o) : SIMS[id].outcomes);
+
+// ---------- liga: pontos por colocação ----------
+export const LEAGUE_POINTS = [10, 7, 5, 4, 3, 2, 1];
+// Ordem ao vivo: quem chegou (pela colocação), depois quem está mais abaixo na pista, depois os eliminados.
+export function ranking(balls) {
+  return [...balls].sort((a, b) => {
+    const ga = a.fin ? 0 : a.alive ? 1 : 2, gb = b.fin ? 0 : b.alive ? 1 : 2;
+    if (ga !== gb) return ga - gb;
+    if (ga === 0) return a.place - b.place;
+    if (ga === 1) return b.y - a.y;
+    return b.elimT - a.elimT;
+  });
+}
+// Resultado da corrida para a liga (ordem final + pontos de cada um), a partir do último quadro.
+export function leagueResult(tl) {
+  const labels = raceLabels(tl.o);
+  return ranking(tl.frames[tl.frames.length - 1].balls).map((b, i) => ({
+    k: b.k, name: labels[b.k].name, short: labels[b.k].short, color: labels[b.k].color,
+    add: b.alive ? (LEAGUE_POINTS[i] ?? 1) : 0, out: !b.alive,
+  }));
+}
+
 export const defaultsOf = def => Object.fromEntries(def.params.map(p => [p.k, p.def]));
 
 export function runSim(id, opts, seed, keepFrames = true, maxT = 90) {
@@ -658,23 +937,24 @@ export function runSim(id, opts, seed, keepFrames = true, maxT = 90) {
   const o = { ...defaultsOf(def), ...opts };
   const rng = mulberry32(seed >>> 0);
   const s = { time: 0, parts: [], timeScale: 1, done: false, outcome: null };
+  const sub = def.sub || SUB, DT1 = 1 / (FPS * sub), outro = o._outro ?? OUTRO;
   def.create(s, rng, o);
   const geo = def.geo(s);
   const frames = [], events = [];
   let t = 0, nFrames = 0, climax = null;
   const emit = (type, data = {}) => events.push({ t, type, ...data });
   for (;;) {
-    for (let k = 0; k < SUB; k++) {
-      const dt = DT * s.timeScale;
+    for (let k = 0; k < sub; k++) {
+      const dt = DT1 * s.timeScale;
       s.time += dt;
       def.step(s, dt, emit, rng);
       stepParts(s, dt);
-      t += DT;
+      t += DT1;
     }
     nFrames++;
     if (keepFrames) frames.push(def.snap(s));
     if (s.done && climax === null) climax = t;
-    if (climax !== null && t >= climax + OUTRO) break;
+    if (climax !== null && t >= climax + outro) break;
     if (t >= maxT) break;
   }
   const result = s.result || { outcome: s.outcome };

@@ -1,5 +1,5 @@
 // Desenha um quadro da linha do tempo num canvas 1080×1920.
-import { W, H, FPS, CX, CY, RACE, PLINKO, TRACK, trackAt, angDiff, mulberry32 } from './sims.js';
+import { W, H, FPS, CX, CY, RACE, PLINKO, TRACK, MULTI, ARENA, trackAt, angDiff, mulberry32, raceLabels, ranking, leagueResult } from './sims.js';
 
 const TAU = Math.PI * 2;
 const FONT = "Fredoka, 'Segoe UI Emoji', 'Apple Color Emoji', sans-serif";
@@ -60,6 +60,8 @@ export class Renderer {
     this.flashes = ev.filter(e => e.type === 'break' || e.type === 'win' || e.type === 'pass').map(e => [e.t, e.type === 'win' ? 0.45 : 0.16]);
     this.loseT = ev.find(e => e.type === 'lose' && !e.soft)?.t ?? null;
     this.elims = ev.filter(e => e.type === 'elim').map(e => e.t);
+    this.labels = raceLabels(tl.o);
+    this.league = null;
     await Promise.all([document.fonts.load(`700 64px Fredoka`), document.fonts.load(`600 40px Fredoka`)]).catch(() => {});
   }
 
@@ -241,6 +243,55 @@ export class Renderer {
     ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
   }
 
+  // sigla (ARI, BRA, JAN…) escrita dentro da bolinha
+  code(str, x, y, r) {
+    if (!str) return;
+    const { ctx } = this;
+    ctx.font = `700 ${Math.round(r * 0.78)}px ${FONT}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#120d24'; ctx.fillText(str, x, y + 1);
+  }
+
+  ansColor(a) {
+    const k = this.tl.geo.answers?.length || 1;
+    return this.color(k > 1 ? a / (k - 1) : 0.5);
+  }
+
+  // Tabela da liga no fim da corrida: pontos de hoje somados ao acumulado.
+  drawLeague(t) {
+    const { ctx, st, tl } = this, start = tl.climax + 0.9;
+    if (!st.league || tl.id !== 'pista' || tl.timeout || t < start) return;
+    const res = leagueResult(tl), before = st.league.pts || {};
+    const rows = res.map(x => ({ ...x, total: (before[x.name] || 0) + x.add }))
+      .sort((a, b) => b.total - a.total || b.add - a.add);
+    const a = clamp01((t - start) / 0.35), rowH = Math.min(62, 760 / rows.length);
+    const top = 560, h = 120 + rows.length * rowH;
+    ctx.save();
+    ctx.globalAlpha = a;
+    ctx.fillStyle = 'rgba(10,7,22,0.9)';
+    ctx.beginPath(); ctx.roundRect(70, top, W - 140, h, 28); ctx.fill();
+    ctx.strokeStyle = 'rgba(255,213,74,0.5)'; ctx.lineWidth = 3; ctx.stroke();
+    ctx.restore();
+    this.text(st.league.title, W / 2, top + 58, 46, { alpha: a, color: '#ffd54a', maxW: W - 220 });
+    rows.forEach((x, i) => {
+      const ra = clamp01((t - start - 0.25 - i * 0.07) / 0.3);
+      if (ra <= 0) return;
+      const y = top + 120 + i * rowH + rowH / 2, dx = (1 - ra) * 60;
+      ctx.save(); ctx.globalAlpha = ra; ctx.translate(dx, 0);
+      ctx.textBaseline = 'middle';
+      ctx.font = `700 ${Math.round(rowH * 0.5)}px ${FONT}`; ctx.textAlign = 'right'; ctx.fillStyle = 'rgba(255,255,255,0.6)';
+      ctx.fillText(String(i + 1), 150, y);
+      this.ball({ x: 190, y, r: rowH * 0.28 }, x.color);
+      ctx.textAlign = 'left'; ctx.fillStyle = x.out ? 'rgba(255,255,255,0.45)' : '#ffffff';
+      ctx.fillText(x.name, 230, y);
+      ctx.textAlign = 'right';
+      ctx.fillStyle = x.add ? '#5ff59a' : '#ff5a66';
+      ctx.fillText(x.add ? `+${x.add}` : '✖', 830, y);
+      ctx.fillStyle = '#ffffff';
+      ctx.fillText(String(x.total), 960, y);
+      ctx.restore();
+    });
+  }
+
   // ---------- textos ----------
   text(str, x, y, size, { weight = 700, color = '#fff', maxW = 940, alpha = 1, scale = 1, stroke = true } = {}) {
     if (!str) return;
@@ -279,6 +330,7 @@ export class Renderer {
       const [label, color] = RESULT[tl.id](tl, this);
       this.text(label, W / 2, 1535, 84, { scale: 0.5 + 0.5 * easeBack(k), alpha: k, color });
     } else HUD[tl.id](this, f, t);
+    this.drawLeague(t);
   }
 }
 
@@ -335,7 +387,7 @@ const DRAW = {
     for (let s = 0; s <= 12; s++) {
       const x0 = CX + (s - 6.5) * P.sp;
       const g = ctx.createLinearGradient(0, P.binTop, 0, P.floor);
-      const c = red.has(s) ? '#ff3b4a' : r.color(Math.abs(s - 6) / 6);
+      const c = geo.answers ? r.ansColor(geo.slotAns[s]) : red.has(s) ? '#ff3b4a' : r.color(Math.abs(s - 6) / 6);
       g.addColorStop(0, rgba(c, 0)); g.addColorStop(1, rgba(c, red.has(s) ? 0.42 : 0.2));
       ctx.fillStyle = g; ctx.fillRect(x0, P.binTop, P.sp, P.floor - P.binTop);
     }
@@ -345,6 +397,7 @@ const DRAW = {
     r.glowPath('#ffffff', 3, 0.75);
     ctx.font = `600 34px ${FONT}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     for (const s of red) ctx.fillText('💀', CX + (s - 6) * P.sp, P.floor + 34);
+    if (geo.answers) for (let s = 0; s <= 12; s++) ctx.fillText(geo.answers[geo.slotAns[s]][1], CX + (s - 6) * P.sp, P.floor + 34);
     geo.pegs.forEach((p, k) => {
       const gl = f.glow[k], c = r.color(p.row / (P.rows - 1));
       if (gl > 0.04) {
@@ -356,7 +409,7 @@ const DRAW = {
       ctx.beginPath(); ctx.arc(p.x, p.y, P.pegR, 0, TAU); ctx.fill();
     });
     f.balls.forEach((b, k) => {
-      const col = b.landed && b.red ? '#ff3b4a' : r.color(b.c);
+      const col = b.landed && geo.answers ? r.ansColor(b.ans) : b.landed && b.red ? '#ff3b4a' : r.color(b.c);
       if (b.landed) {
         const x = CX + (b.slot - 6) * P.sp + (b.stack % 2 ? 15 : -15), y = P.floor - b.r - 2 - Math.floor(b.stack / 2) * (b.r * 2 + 1);
         r.ball({ x, y, r: b.r }, col);
@@ -441,19 +494,75 @@ DRAW.pista = (r, f, i) => {
     ctx.fillStyle = '#ff4a58'; ctx.fill();
     ctx.fillStyle = '#2a0b12'; ctx.beginPath(); ctx.arc(x, p.y, p.r * 0.3, 0, TAU); ctx.fill();
   }
-  f.balls.forEach((b, k) => { if (b.alive) r.ball(b, RACE[b.k].c, r.trail(i, k, 6)); });
+  f.balls.forEach((b, k) => {
+    if (!b.alive) return;
+    r.ball(b, RACE[b.k].c, r.trail(i, k, 6));
+    r.code(r.labels[b.k].short, b.x, b.y, b.r);
+  });
 };
 
-// Ordem ao vivo: quem chegou (pela colocação), depois quem está mais abaixo na pista, depois os eliminados.
-function ranking(balls) {
-  return [...balls].sort((a, b) => {
-    const ga = a.fin ? 0 : a.alive ? 1 : 2, gb = b.fin ? 0 : b.alive ? 1 : 2;
-    if (ga !== gb) return ga - gb;
-    if (ga === 0) return a.place - b.place;
-    if (ga === 1) return b.y - a.y;
-    return b.elimT - a.elimT;
+DRAW.multiplica = (r, f) => {
+  const { ctx } = r, { R } = MULTI;
+  ctx.save(); ctx.translate(CX, CY);
+  ctx.beginPath();
+  if (f.gapW > 0) ctx.arc(0, 0, R, f.ang + f.gapW / 2, f.ang - f.gapW / 2 + TAU); else ctx.arc(0, 0, R, 0, TAU);
+  r.glowPath(r.color(0.2), 7);
+  if (f.gapW > 0) for (const sgn of [-1, 1]) {
+    const a = f.ang + sgn * f.gapW / 2, x = Math.cos(a) * R, y = Math.sin(a) * R;
+    ctx.fillStyle = '#ff5a66'; ctx.beginPath(); ctx.arc(x, y, 10, 0, TAU); ctx.fill();
+  }
+  ctx.restore();
+  // milhares de bolinhas: agrupa por cor para desenhar com poucos comandos
+  const pts = f.pts, n = pts.length / 3, B = 12, groups = Array.from({ length: B }, () => []);
+  for (let j = 0; j < n; j++) groups[Math.min(B - 1, (pts[j * 3 + 2] * B) | 0)].push(j);
+  const rr = MULTI.r;
+  ctx.globalCompositeOperation = 'lighter';
+  groups.forEach((list, g) => {
+    if (!list.length) return;
+    ctx.fillStyle = rgba(r.color((g + 0.5) / B), 0.22); ctx.beginPath();
+    for (const j of list) { const x = pts[j * 3], y = pts[j * 3 + 1]; ctx.moveTo(x + rr * 2.2, y); ctx.arc(x, y, rr * 2.2, 0, TAU); }
+    ctx.fill();
   });
-}
+  ctx.globalCompositeOperation = 'source-over';
+  groups.forEach((list, g) => {
+    if (!list.length) return;
+    ctx.fillStyle = mix(r.color((g + 0.5) / B), '#ffffff', 0.35); ctx.beginPath();
+    for (const j of list) { const x = pts[j * 3], y = pts[j * 3 + 1]; ctx.moveTo(x + rr, y); ctx.arc(x, y, rr, 0, TAU); }
+    ctx.fill();
+  });
+};
+
+DRAW.guerra = (r, f) => {
+  const { ctx } = r, { N, cell, X, Y } = ARENA, size = N * cell, T = r.tl.geo.T;
+  const fills = r.labels.slice(0, T).map(l => mix(l.color, '#0b0820', 0.35));
+  const sx = new Array(T).fill(0), sy = new Array(T).fill(0), sn = new Array(T).fill(0);
+  for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) {
+    const t = f.cells[j * N + i];
+    ctx.fillStyle = fills[t]; ctx.fillRect(X + i * cell, Y + j * cell, cell + 0.6, cell + 0.6);
+    sx[t] += i; sy[t] += j; sn[t]++;
+  }
+  ctx.strokeStyle = 'rgba(0,0,0,0.18)'; ctx.lineWidth = 2; ctx.beginPath();
+  for (let k = 1; k < N; k++) { ctx.moveTo(X + k * cell, Y); ctx.lineTo(X + k * cell, Y + size); ctx.moveTo(X, Y + k * cell); ctx.lineTo(X + size, Y + k * cell); }
+  ctx.stroke();
+  ctx.beginPath(); ctx.rect(X, Y, size, size); r.glowPath('#ffffff', 4, 0.8);
+  // nome de cada time no meio do território dele
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  for (let t = 0; t < T; t++) {
+    if (sn[t] < 12) continue;
+    const l = r.labels[t], txt = l.short || l.name;
+    ctx.font = `700 ${txt.length > 6 ? 40 : 54}px ${FONT}`; ctx.fillStyle = 'rgba(255,255,255,0.28)';
+    ctx.fillText(txt, X + (sx[t] / sn[t] + 0.5) * cell, Y + (sy[t] / sn[t] + 0.5) * cell);
+  }
+  for (const b of f.balls) {
+    const col = r.labels[b.team].color;
+    r.ball(b, '#ffffff');
+    ctx.beginPath(); ctx.arc(b.x, b.y, b.r + 2, 0, TAU); ctx.strokeStyle = col; ctx.lineWidth = 6; ctx.stroke();
+  }
+  if (f.left <= 5 && f.left > 0) {
+    const k = f.left % 1;
+    r.text(String(Math.ceil(f.left)), X + size / 2, Y + size / 2, 300, { alpha: 0.25 + 0.35 * k, scale: 0.8 + 0.2 * k });
+  }
+};
 
 const HUD = {
   labirinto(r, f) {
@@ -461,7 +570,11 @@ const HUD = {
     r.text(`${left} ${left === 1 ? 'layer left' : 'layers left'}`, W / 2, 1535, 50, { weight: 600 });
   },
   zona(r, f) { r.text(`Bounces: ${f.bounces}`, W / 2, 1535, 50, { weight: 600 }); },
-  plinko(r, f) { r.text(`✅ ${f.good}     💀 ${f.bad}`, W / 2, 1535, 56, { weight: 600 }); },
+  plinko(r, f) {
+    const a = r.tl.geo.answers;
+    if (a) r.text(a.map(([, e], i) => `${e} ${f.ans[i]}`).join('    '), W / 2, 1535, 54, { weight: 600 });
+    else r.text(`✅ ${f.good}     💀 ${f.bad}`, W / 2, 1535, 56, { weight: 600 });
+  },
   corrida(r, f) {
     const { ctx } = r, n = f.balls.length, total = r.tl.geo.layers.length, w = 220, x0 = W / 2 - ((n - 1) * w) / 2;
     f.balls.forEach((b, k) => {
@@ -496,6 +609,7 @@ HUD.pista = (r, f) => {
       r.ball({ x: cx, y: cy, r: 20 }, RACE[b.k].c);
       ctx.font = `700 26px ${FONT}`; ctx.fillStyle = '#fff';
       ctx.fillText(String(i + 1), cx, cy - 40);
+      if (r.labels[b.k].short) { ctx.font = `700 21px ${FONT}`; ctx.fillStyle = '#ffffff'; ctx.fillText(r.labels[b.k].short, cx, cy + 38); }
     } else {
       ctx.globalAlpha = 0.45; r.ball({ x: cx, y: cy, r: 20 }, '#777777'); ctx.globalAlpha = 1;
       ctx.font = `700 30px ${FONT}`; ctx.fillStyle = '#ff5a66';
@@ -504,10 +618,44 @@ HUD.pista = (r, f) => {
   });
 };
 
+HUD.multiplica = (r, f) => {
+  const { ctx } = r, target = r.tl.geo.target, p = clamp01(f.count / target), w = 760, x0 = (W - w) / 2, y = 1462;
+  ctx.fillStyle = 'rgba(255,255,255,0.14)'; ctx.beginPath(); ctx.roundRect(x0, y, w, 18, 9); ctx.fill();
+  const g = ctx.createLinearGradient(x0, 0, x0 + w, 0);
+  g.addColorStop(0, r.color(0.1)); g.addColorStop(1, r.color(0.9));
+  ctx.fillStyle = g; ctx.beginPath(); ctx.roundRect(x0, y, Math.max(18, w * p), 18, 9); ctx.fill();
+  r.text(`${f.count.toLocaleString('en-US')} / ${target.toLocaleString('en-US')}`, W / 2, 1540, 64, { weight: 700 });
+};
+
+HUD.guerra = (r, f) => {
+  const { ctx } = r, T = r.tl.geo.T, total = f.counts.reduce((a, b) => a + b, 0), w = 900, x0 = (W - w) / 2, y = 1512, h = 46;
+  let x = x0;
+  ctx.save(); ctx.beginPath(); ctx.roundRect(x0, y, w, h, 23); ctx.clip();
+  for (let t = 0; t < T; t++) {
+    const ww = (f.counts[t] / total) * w;
+    ctx.fillStyle = r.labels[t].color; ctx.fillRect(x, y, ww + 0.5, h);
+    if (ww > 90) {
+      ctx.font = `700 28px ${FONT}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = '#120d24';
+      ctx.fillText(`${Math.round((f.counts[t] / total) * 100)}%`, x + ww / 2, y + h / 2 + 1);
+    }
+    x += ww;
+  }
+  ctx.restore();
+  r.text(`⏱ ${Math.ceil(f.left)}s`, W - 150, 488, 40, { weight: 600, stroke: false });
+};
+
 const RESULT = {
   labirinto: () => ['ESCAPED! 🎉', '#ffd54a'],
   zona: tl => (tl.result.outcome === 'ruim' ? ['RED ZONE! 💀', '#ff5a66'] : ['ESCAPED! 🎉', '#ffd54a']),
-  plinko: tl => [`✅ ${tl.result.good}  ·  💀 ${tl.result.bad}`, tl.result.outcome === 'ultima_ruim' ? '#ff5a66' : '#ffd54a'],
   corrida: tl => { const w = RACE.find(x => x.k === tl.result.outcome); return [`${w.n.toUpperCase()} WINS! 🏆`, w.c]; },
-  pista: tl => { const w = RACE.find(x => x.k === tl.result.outcome); return [`${w.n.toUpperCase()} WINS! 🏆`, w.c]; },
+  pista: (tl, r) => { const w = r.labels[RACE.findIndex(x => x.k === tl.result.outcome)]; return [`${w.name.toUpperCase()} WINS! 🏆`, w.color]; },
+  plinko: tl => {
+    if (tl.result.answer == null) return [`✅ ${tl.result.good}  ·  💀 ${tl.result.bad}`, tl.result.outcome === 'ultima_ruim' ? '#ff5a66' : '#ffd54a'];
+    const [t, e] = tl.geo.answers[tl.result.answer];
+    return [`${e} ${t.toUpperCase()}!`, '#ffd54a'];
+  },
+  multiplica: tl => (tl.result.outcome === 'chegou'
+    ? [`${tl.geo.target.toLocaleString('en-US')} BALLS! 🤯`, '#ffd54a']
+    : [`ALL GONE! 💀 max ${tl.result.peak}`, '#ff5a66']),
+  guerra: (tl, r) => { const w = r.labels[tl.result.counts.indexOf(Math.max(...tl.result.counts))]; return [`${w.name.toUpperCase()} WINS! 🏆`, w.color]; },
 };

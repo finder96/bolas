@@ -7,11 +7,11 @@ on:
     - cron: '0 11 * * *' # 08:00 em Brasília
   workflow_dispatch:
     inputs:
-      sim:
-        description: 'Simulação (vazio = rodízio do dia)'
+      formato:
+        description: 'Formato (vazio = rodízio da semana)'
         required: false
         type: choice
-        options: ['', pista, labirinto, zona, plinko, corrida]
+        options: ['', liga, multiplica, decisao, guerra, classico, pista, labirinto, zona, plinko, corrida]
 
 permissions:
   contents: write
@@ -44,7 +44,7 @@ jobs:
           HANDLE: ${{ vars.HANDLE }}
         run: |
           ARGS="--saida out"
-          if [ -n "${{ inputs.sim }}" ]; then ARGS="$ARGS --sim ${{ inputs.sim }}"; fi
+          if [ -n "${{ inputs.formato }}" ]; then ARGS="$ARGS --formato ${{ inputs.formato }}"; fi
           node scripts/diario.mjs $ARGS
           ffprobe -v error -show_entries stream=codec_name,width,height -of csv=p=0 out/*.mp4
 
@@ -61,3 +61,13 @@ jobs:
           echo "### 🎬 Vídeo do dia" >> "$GITHUB_STEP_SUMMARY"
           echo "$URL" >> "$GITHUB_STEP_SUMMARY"
           echo '```' >> "$GITHUB_STEP_SUMMARY"; cat out/legenda.txt >> "$GITHUB_STEP_SUMMARY"; echo '```' >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Salvar a tabela da liga
+        run: |
+          if [ -n "$(git status --porcelain liga.json)" ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add liga.json
+            git commit -m "Liga dos signos: $(date -u +%F)"
+            git push
+          fi

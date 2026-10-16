@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Bounce Odds · branding</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700&display=swap" rel="stylesheet">
+<style>
+  body { margin: 0; background: #111; display: flex; flex-direction: column; gap: 20px; padding: 20px; color: #fff; font: 14px sans-serif; }
+  canvas { max-width: 100%; height: auto; border: 1px solid #333; }
+</style>
+</head>
+<body>
+<p>Foto de perfil (1080×1080) e capa do YouTube (2560×1440). Gerado por <code>node branding/gerar.mjs</code>.</p>
+<canvas id="avatar" width="1080" height="1080"></canvas>
+<canvas id="banner" width="2560" height="1440"></canvas>
+<script>
+const NAME = new URLSearchParams(location.search).get('name') || 'BOUNCE ODDS';
+const TAG = new URLSearchParams(location.search).get('tag') || 'Pick a color · Watch till the end';
+const TAU = Math.PI * 2;
+const NEON = ['#ff3cac', '#ffb86c', '#f1fa8c', '#50fa7b', '#8be9fd', '#bd93f9'];
+const RACE = ['#ff4fa3', '#ffd23f', '#3ddc84', '#b06cff', '#ff8a3d', '#4de8ff'];
+
+function rng(a) { return () => { a |= 0; a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+
+function glowStroke(ctx, color, w) {
+  ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  ctx.save(); ctx.shadowColor = color; ctx.shadowBlur = w * 5; ctx.strokeStyle = color; ctx.lineWidth = w; ctx.stroke(); ctx.restore();
+  ctx.save(); ctx.strokeStyle = 'rgba(255,255,255,0.7)'; ctx.lineWidth = w * 0.3; ctx.stroke(); ctx.restore();
+}
+
+function ring(ctx, x, y, r, gapAt, gapW, color, w) {
+  ctx.beginPath(); ctx.arc(x, y, r, gapAt + gapW / 2, gapAt - gapW / 2 + TAU); glowStroke(ctx, color, w);
+}
+
+function ball(ctx, x, y, r, color) {
+  const g = ctx.createRadialGradient(x, y, r * 0.4, x, y, r * 3);
+  g.addColorStop(0, color + 'aa'); g.addColorStop(1, color + '00');
+  ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, r * 3, 0, TAU); ctx.fill();
+  const b = ctx.createRadialGradient(x - r * 0.35, y - r * 0.35, r * 0.1, x, y, r);
+  b.addColorStop(0, '#ffffff'); b.addColorStop(0.45, color); b.addColorStop(1, color);
+  ctx.fillStyle = b; ctx.beginPath(); ctx.arc(x, y, r, 0, TAU); ctx.fill();
+}
+
+function trail(ctx, pts, r, color) {
+  pts.forEach(([x, y], i) => {
+    const k = (i + 1) / (pts.length + 1);
+    ctx.fillStyle = color + Math.round(k * 90).toString(16).padStart(2, '0');
+    ctx.beginPath(); ctx.arc(x, y, r * (0.45 + 0.55 * k), 0, TAU); ctx.fill();
+  });
+}
+
+function stars(ctx, w, h, n, seed) {
+  const r = rng(seed); ctx.fillStyle = '#fff';
+  for (let i = 0; i < n; i++) { ctx.globalAlpha = 0.2 + r() * 0.6; ctx.beginPath(); ctx.arc(r() * w, r() * h, 0.6 + r() * 2.2, 0, TAU); ctx.fill(); }
+  ctx.globalAlpha = 1;
+}
+
+// ---------- foto de perfil: anéis com fresta e a bolinha escapando ----------
+function drawAvatar() {
+  const c = document.getElementById('avatar'), ctx = c.getContext('2d'), S = 1080, m = S / 2;
+  const bg = ctx.createRadialGradient(m, m * 0.9, 40, m, m, S * 0.72);
+  bg.addColorStop(0, '#33195e'); bg.addColorStop(0.55, '#170d33'); bg.addColorStop(1, '#07051a');
+  ctx.fillStyle = bg; ctx.fillRect(0, 0, S, S);
+  stars(ctx, S, S, 90, 3);
+  const gap = -0.78; // a fresta aponta para cima e para a direita
+  ring(ctx, m, m, 360, gap, 0.62, NEON[0], 26);
+  ring(ctx, m, m, 268, gap + 2.4, 0.78, NEON[4], 24);
+  ring(ctx, m, m, 176, gap - 2.2, 1.0, NEON[2], 22);
+  // trajetória: do centro, passando pela fresta de fora
+  const pts = [];
+  for (let i = 0; i < 14; i++) { const t = i / 13, rr = 40 + t * 380; pts.push([m + Math.cos(gap + 0.5 * (1 - t)) * rr, m + Math.sin(gap + 0.5 * (1 - t)) * rr]); }
+  trail(ctx, pts.slice(0, -1), 46, '#ffffff');
+  const [bx, by] = pts[pts.length - 1];
+  ball(ctx, bx, by, 50, '#ffd54a');
+}
+
+// ---------- capa do YouTube ----------
+function drawBanner() {
+  const c = document.getElementById('banner'), ctx = c.getContext('2d'), W = 2560, H = 1440, cy = H / 2;
+  const bg = ctx.createLinearGradient(0, 0, 0, H);
+  bg.addColorStop(0, '#07051a'); bg.addColorStop(0.5, '#1f1145'); bg.addColorStop(1, '#07051a');
+  ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+  stars(ctx, W, H, 420, 11);
+  // esquerda: pinos de plinko com bolinhas caindo
+  for (let j = 0; j < 9; j++) for (let k = 0; k <= j; k++) {
+    const x = 330 + (k - j / 2) * 72, y = 330 + j * 92;
+    ctx.save(); ctx.shadowColor = NEON[j % NEON.length]; ctx.shadowBlur = 18;
+    ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.arc(x, y, 9, 0, TAU); ctx.fill(); ctx.restore();
+  }
+  [[300, 470, RACE[0]], [400, 700, RACE[2]], [250, 860, RACE[1]]].forEach(([x, y, col]) => {
+    trail(ctx, [[x - 6, y - 120], [x - 4, y - 90], [x - 2, y - 60], [x, y - 30]], 20, col); ball(ctx, x, y, 22, col);
+  });
+  // direita: anéis com fresta e corrida de cores
+  const rx = 2230;
+  ring(ctx, rx, cy, 300, 3.0, 0.5, NEON[5], 18);
+  ring(ctx, rx, cy, 215, 0.6, 0.6, NEON[4], 16);
+  ring(ctx, rx, cy, 130, -1.6, 0.8, NEON[0], 14);
+  [[rx - 40, cy + 40, RACE[3]], [rx + 60, cy - 30, RACE[2]], [rx - 175, cy - 120, RACE[0]], [rx + 5, cy + 250, RACE[1]]].forEach(([x, y, col]) => ball(ctx, x, y, 24, col));
+  // centro (área segura 1546×423): nome + frase
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.font = '700 168px Fredoka';
+  ctx.save(); ctx.shadowColor = '#ff3cac'; ctx.shadowBlur = 60; ctx.fillStyle = '#ffffff'; ctx.fillText(NAME, W / 2, cy - 40); ctx.restore();
+  ctx.fillStyle = '#ffffff'; ctx.fillText(NAME, W / 2, cy - 40);
+  ctx.font = '600 56px Fredoka'; ctx.fillStyle = '#ffd54a';
+  ctx.fillText(TAG, W / 2, cy + 105);
+  // pontinhos coloridos entre nome e frase
+  RACE.forEach((col, i) => ball(ctx, W / 2 + (i - 2.5) * 54, cy + 46, 10, col));
+}
+
+document.fonts.load('700 168px Fredoka').then(() => document.fonts.load('600 56px Fredoka')).then(() => {
+  drawAvatar(); drawBanner(); window.ready = true;
+});
+</script>
+</body>
+</html>

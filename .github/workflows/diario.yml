@@ -1,0 +1,59 @@
+# Todo dia: gera o vídeo do dia e publica como Release (link público do MP4 + legenda).
+# A postagem no TikTok/YouTube (Metricool) entra aqui quando os perfis estiverem conectados.
+name: Vídeo do dia
+
+on:
+  schedule:
+    - cron: '0 11 * * *' # 08:00 em Brasília
+  workflow_dispatch:
+    inputs:
+      sim:
+        description: 'Simulação (vazio = rodízio do dia)'
+        required: false
+        type: choice
+        options: ['', pista, labirinto, zona, plinko, corrida]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: video-do-dia
+  cancel-in-progress: false
+
+jobs:
+  video:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci --no-audit --no-fund
+
+      - name: Gerar o vídeo
+        env:
+          CHROME_PATH: /usr/bin/google-chrome
+          HANDLE: ${{ vars.HANDLE }}
+        run: |
+          ARGS="--saida out"
+          if [ -n "${{ inputs.sim }}" ]; then ARGS="$ARGS --sim ${{ inputs.sim }}"; fi
+          node scripts/diario.mjs $ARGS
+          ffprobe -v error -show_entries stream=codec_name,width,height -of csv=p=0 out/*.mp4
+
+      - name: Publicar como Release
+        id: release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          FILE=$(ls out/*.mp4)
+          TAG="video-$(date -u +%F)-${{ github.run_number }}"
+          gh release create "$TAG" "$FILE" out/legenda.txt out/info.json --title "Vídeo do dia $(date -u +%F)" --notes-file out/legenda.txt
+          URL="https://github.com/${{ github.repository }}/releases/download/$TAG/$(basename "$FILE")"
+          echo "url=$URL" >> "$GITHUB_OUTPUT"
+          echo "### 🎬 Vídeo do dia" >> "$GITHUB_STEP_SUMMARY"
+          echo "$URL" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"; cat out/legenda.txt >> "$GITHUB_STEP_SUMMARY"; echo '```' >> "$GITHUB_STEP_SUMMARY"

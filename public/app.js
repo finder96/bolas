@@ -2,11 +2,11 @@ import { SIMS, DURATIONS, FPS, W, H, runSim, findSeed, defaultsOf, fmtTime } fro
 import { Renderer, PALETTES, BACKGROUNDS } from './render.js';
 import { MELODIES, Player, renderAudio } from './audio.js';
 import { exportMp4 } from './exporter.js';
+import { suggestCaption } from './caption.js';
 
 const $ = s => document.querySelector(s);
 const DIAS = ['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB'];
 const DEFAULT_DUR = { labirinto: 'medio', zona: 'curto', plinko: 'curto', corrida: 'curto', pista: 'curto' };
-const BASE_TAGS = '#satisfying #oddlysatisfying #asmr #relaxing #physics #simulation #fyp #viral';
 
 const iso = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 const fromIso = s => { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d); };
@@ -41,11 +41,6 @@ function newCfg(sim = 'labirinto') {
   };
   cfg.caption = suggestCaption(cfg);
   return cfg;
-}
-
-function suggestCaption(c) {
-  const m = MELODIES[c.music];
-  return `${c.hook}\n\n🎵 ${m.name}${m.gen ? '' : ' — ' + m.credit}\n\n${BASE_TAGS} ${SIMS[c.sim].tags}`;
 }
 
 function bgUrl(bg) {

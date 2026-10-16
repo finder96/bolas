@@ -1,3 +1,5 @@
+import { registerMore } from './sims2.js';
+
 // Física determinística: a mesma seed sempre gera o mesmo vídeo.
 // Cada simulação devolve uma linha do tempo quadro a quadro + os eventos que viram som.
 export const W = 1080, H = 1920, FPS = 30, SUB = 8, DT = 1 / (FPS * SUB), OUTRO = 3.5;
@@ -90,6 +92,11 @@ export const DECISIONS = {
     name: 'O que 2027 traz', answers: [['Money', '💸'], ['Love', '❤️'], ['Travel', '✈️'], ['Glow up', '✨'], ['Chaos', '🌪️']],
     hooks: ['What will 2027 bring you? 🔮', 'The balls predict your 2027 🔮'],
     ctas: ['What did you get? 👇', 'Screenshot your 2027 📸'],
+  },
+  sorte: {
+    name: 'Sorte dos signos hoje', signs: true, answers: [['JACKPOT', '💎'], ['Great', '✨'], ['Okay', '🙂'], ['Meh', '😶'], ['Chaos', '🌪️']],
+    hooks: ['Your sign’s luck today 🔮 find yours', 'What’s your luck today? ✨ find your sign', 'The balls decide each sign’s luck today 🔮'],
+    ctas: ['Comment your result 👇', 'Screenshot your luck 📸', 'Did your sign get lucky? 👇'],
   },
   fds: {
     name: 'Fim de semana', answers: [['Party', '🎉'], ['Sleep', '😴'], ['Work', '💼'], ['Date', '💕']],
@@ -346,7 +353,7 @@ export const SIMS = {
       { k: 'zona', l: 'Zona vermelha', type: 'select', def: '1', opts: [['1', '1 casa no centro'], ['3', '3 casas no centro'], ['bordas', 'Casas das bordas']], show: o => !DECISIONS[o.tema] },
       { k: 'intervalo', l: 'Intervalo entre bolinhas (s)', type: 'range', min: 1, max: 3.5, step: 0.1, def: 2 },
     ],
-    outcomes: o => (DECISIONS[o.tema]
+    outcomes: o => (DECISIONS[o.tema]?.signs ? [['any', 'Aleatório']] : DECISIONS[o.tema]
       ? [['any', 'Aleatório'], ...DECISIONS[o.tema].answers.map(([t], i) => ['a' + i, 'Resposta: ' + t])]
       : [['any', 'Aleatório'], ['ultima_ruim', 'A última cai na vermelha'], ['ultima_boa', 'A última se salva'], ['nenhuma', 'Nenhuma cai na vermelha']]),
     hooks: ['How many will land in the red zone? 💀', 'Guess a number before it ends 👇', 'The last one decides everything… 😬'],
@@ -362,6 +369,8 @@ export const SIMS = {
       }
       s.glow = new Float32Array(s.pegs.length);
       s.answers = DECISIONS[o.tema]?.answers || null;
+      s.signs = !!DECISIONS[o.tema]?.signs;
+      if (s.signs) { o.bolas = 12; o.intervalo = Math.min(o.intervalo, 1.3); s.outro = 7; }
       // casas alternadas entre as respostas: todas têm chance parecida (o centro não favorece uma só)
       s.slotAns = s.answers ? Array.from({ length: 13 }, (_, i) => i % s.answers.length) : null;
       s.ans = s.answers ? new Array(s.answers.length).fill(0) : null;
@@ -371,8 +380,8 @@ export const SIMS = {
     step(s, dt, emit, rng) {
       const P = PLINKO, o = s.o;
       if (s.dropped < o.bolas && s.time >= s.next) {
-        const b = newBall(CX + (rng() - 0.5) * 14, 440, 40 + rng() * 40, Math.PI / 2 + (rng() - 0.5) * 0.8, P.ballR, s.dropped / Math.max(1, o.bolas - 1));
-        s.balls.push(b); s.dropped++; s.next += o.intervalo;
+        const b = newBall(CX + (rng() - 0.5) * 14, 440, 40 + rng() * 40, Math.PI / 2 + (rng() - 0.5) * 0.8, s.signs ? 16 : P.ballR, s.dropped / Math.max(1, o.bolas - 1));
+        b.k = s.dropped; s.balls.push(b); s.dropped++; s.next += o.intervalo;
       }
       const decay = Math.exp(-5 * dt);
       for (let i = 0; i < s.glow.length; i++) s.glow[i] *= decay;
@@ -406,8 +415,8 @@ export const SIMS = {
           burst(s, rng, CX + (slot - 6) * P.sp, P.binTop + 30, 26, b.red ? -2 : pc, 420, 0.8);
           if (s.answers && s.dropped === o.bolas && s.balls.every(x => x.landed)) {
             const max = Math.max(...s.ans), win = s.ans[b.ans] === max ? b.ans : s.ans.indexOf(max);
-            s.done = true; s.outcome = 'a' + win;
-            s.result = { outcome: s.outcome, answer: win, counts: [...s.ans] };
+            s.done = true; s.outcome = s.signs ? 'any' : 'a' + win;
+            s.result = s.signs ? { outcome: 'any', table: s.balls.map(x => x.ans) } : { outcome: s.outcome, answer: win, counts: [...s.ans] };
             emit('win', { soft: true });
           } else if (s.dropped === o.bolas && s.balls.every(x => x.landed)) {
             s.done = true; s.outcome = b.red ? 'ultima_ruim' : 'ultima_boa';
@@ -419,9 +428,9 @@ export const SIMS = {
       const last = s.balls[o.bolas - 1];
       s.timeScale = o.bolas > 1 && last && !last.landed && last.y > 780 ? 0.45 : 1;
     },
-    geo: s => ({ pegs: s.pegs, red: [...s.red], answers: s.answers, slotAns: s.slotAns }),
+    geo: s => ({ pegs: s.pegs, red: [...s.red], answers: s.answers, slotAns: s.slotAns, signs: s.signs }),
     snap: s => ({
-      balls: s.balls.map(b => snapBall(b, { landed: !!b.landed, slot: b.slot, stack: b.stack, red: b.red, ans: b.ans })),
+      balls: s.balls.map(b => snapBall(b, { landed: !!b.landed, slot: b.slot, stack: b.stack, red: b.red, ans: b.ans, k: b.k })),
       glow: Float32Array.from(s.glow), good: s.good, bad: s.bad, ans: s.ans ? [...s.ans] : null, slow: s.timeScale < 1, parts: snapParts(s),
     }),
   },
@@ -903,8 +912,9 @@ SIMS.guerra = {
 // ---------- textos e opções que dependem do tema ----------
 export function textsFor(id, o) {
   const def = SIMS[id], T = THEMES[o?.tema], D = DECISIONS[o?.tema];
+  if (def.texts) return def.texts({ ...defaultsOf(def), ...o });
   if ((id === 'pista' || id === 'guerra') && T?.hooks) return { hooks: T.hooks, ctas: T.ctas, tags: `${def.tags} ${T.tags}` };
-  if (id === 'plinko' && D) return { hooks: D.hooks, ctas: D.ctas, tags: '#letthebalsdecide #plinko #pov' };
+  if (id === 'plinko' && D) return { hooks: D.hooks, ctas: D.ctas, tags: D.signs ? '#zodiac #horoscope #astrology #luck' : '#letthebalsdecide #plinko #pov' };
   return { hooks: def.hooks, ctas: def.ctas, tags: def.tags };
 }
 export const outcomesFor = (id, o) => (typeof SIMS[id].outcomes === 'function' ? SIMS[id].outcomes(o) : SIMS[id].outcomes);
@@ -937,8 +947,9 @@ export function runSim(id, opts, seed, keepFrames = true, maxT = 90) {
   const o = { ...defaultsOf(def), ...opts };
   const rng = mulberry32(seed >>> 0);
   const s = { time: 0, parts: [], timeScale: 1, done: false, outcome: null };
-  const sub = def.sub || SUB, DT1 = 1 / (FPS * sub), outro = o._outro ?? OUTRO;
+  const sub = def.sub || SUB, DT1 = 1 / (FPS * sub);
   def.create(s, rng, o);
+  const outro = o._outro ?? s.outro ?? OUTRO;
   const geo = def.geo(s);
   const frames = [], events = [];
   let t = 0, nFrames = 0, climax = null;
@@ -978,3 +989,5 @@ export async function findSeed(id, opts, want, range, onTry, maxTries = 400) {
 }
 
 export const fmtTime = sec => `${Math.floor(sec / 60)}:${(sec % 60).toFixed(1).padStart(4, '0')}`;
+
+registerMore({ SIMS, THEMES, burst, snapParts, CX, CY });

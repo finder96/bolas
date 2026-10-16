@@ -9,11 +9,8 @@ Anotações do que já está pronto e do que falta para os vídeos saírem sozin
 
     | Dia | Formato |
     |---|---|
-    | Domingo, quarta, sábado | 🏆 **Zodiac League**: corrida dos 12 signos com tabela de pontos acumulada |
-    | Segunda | 🤯 Multiplicação (chega a 1.000 ou esvazia?) |
-    | Terça | 💀 "Let the balls decide": jantar, ex, férias, 2027, fim de semana (um tema por semana) |
-    | Quinta | 🗺️ Guerra de cores (alterna países com 4 times e cores com 2 times) |
-    | Sexta | Clássico em rodízio: labirinto, zona vermelha, corrida de cores, pista |
+    | Domingo e quarta | 🏆 **Zodiac League**: corrida dos 12 signos com tabela de pontos acumulada |
+    | Segunda, terça, quinta, sexta e sábado | um formato por dia, em sequência: pedra-papel-tesoura → multiplicação → "let the balls decide" → sorte dos signos → guerra de cores → corrida de ordenação → ache o diferente → quiz de bandeiras → dominó → pixel art → corrida de barras → clássico (labirinto, zona, corrida de cores ou pista) |
 
   - Ele busca uma seed com bom final e boa duração.
   - **Liga:** a tabela fica em `liga.json`. Depois de cada corrida da liga, o workflow soma os pontos (10, 7, 5, 4, 3, 2 e 1 do 7º em diante; eliminado faz 0) e salva o arquivo no repositório. Para recomeçar a temporada, apague o `liga.json`.
@@ -22,7 +19,7 @@ Anotações do que já está pronto e do que falta para os vídeos saírem sozin
   - `legenda.txt` com a legenda em inglês e as hashtags;
   - `info.json` com as escolhas do dia (simulação, seed, música, resultado).
 - Primeiro vídeo gerado: [video-2026-10-16-2](https://github.com/finder96/bolas/releases/tag/video-2026-10-16-2).
-- **Gerar fora do horário:** *Actions → Vídeo do dia → Run workflow*. Dá para escolher o formato (`liga`, `multiplica`, `decisao`, `guerra`, `classico` ou uma simulação).
+- **Gerar fora do horário:** *Actions → Vídeo do dia → Run workflow*. Dá para escolher o formato (`liga`, `rps`, `multiplica`, `decisao`, `sorte`, `guerra`, `ordenacao`, `diferente`, `bandeiras`, `domino`, `pixel`, `barras`, `classico` ou uma simulação).
 - **Gerar no PC:** `npm install` uma vez e depois `npm run diario` (opções: `-- --formato guerra`, `-- --data 2026-10-20`). O vídeo sai em `out/`.
 
 ### Como funciona por dentro

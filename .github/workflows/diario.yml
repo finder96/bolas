@@ -11,7 +11,7 @@ on:
         description: 'Formato (vazio = rodízio da semana)'
         required: false
         type: choice
-        options: ['', liga, multiplica, decisao, guerra, classico, pista, labirinto, zona, plinko, corrida]
+        options: ['', liga, rps, multiplica, decisao, sorte, guerra, ordenacao, diferente, bandeiras, domino, pixel, barras, classico, pista, labirinto, zona, plinko, corrida]
 
 permissions:
   contents: write

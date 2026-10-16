@@ -92,6 +92,12 @@ function schedule(ctx, out, events, melId, seed, from, at) {
     else if (e.type === 'land') { if (e.red) play = [['thud'], [M.root - 21, 0.3, 2.2]]; else { const n = next(); play = [[n, 0.4], [n + 12, 0.2]]; } }
     else if (e.type === 'win') {
       play = M.chord.map((c, j) => [c, 0.28, 2.4, j * 0.07]).concat(M.chord.map(c => [c + 12, 0.14, 3.4, 0.4]), [[M.root - 12, 0.3, 3.4, 0.4]]);
+    } else if (e.type === 'note') {
+      play = [[e.m, e.v ?? 0.15, 0.6]];
+    } else if (e.type === 'tick') {
+      play = [[M.root + 24, 0.1, 0.18]];
+    } else if (e.type === 'reveal') {
+      const n = next(); play = [[n, 0.3], [n + 12, 0.16, 1.4, 0.06], [n + 19, 0.1, 1.4, 0.12]];
     } else if (e.type === 'go') {
       play = M.chord.slice(0, 3).map((c, j) => [c, 0.22, 1.2, j * 0.05]);
     } else if (e.type === 'elim') {

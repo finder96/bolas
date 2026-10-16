@@ -32,11 +32,18 @@ Depois abra http://localhost:5178 no Chrome (a exportação usa WebCodecs, que e
 |---|---|
 | 🌀 Fuga do labirinto | camadas giratórias com fresta; cada fuga quebra uma camada |
 | 🎯 Zona vermelha | a bolinha cresce a cada quique; escapa pela saída ou toca no vermelho |
-| 💀 Chuva de bolinhas | plinko: quantas caem na zona vermelha? A última vem em câmera lenta. **Modo decisão**: as casas viram respostas ("Let the balls pick your dinner", "Should you text your ex?"…) |
+| 💀 Chuva de bolinhas | plinko: quantas caem na zona vermelha? A última vem em câmera lenta. **Modo decisão**: as casas viram respostas ("Let the balls pick your dinner", "Should you text your ex?"…). **Sorte dos signos**: 12 bolinhas, uma por signo, e a tabela da sorte do dia no fim |
 | 🏁 Corrida de cores | 2 a 4 cores; a primeira a escapar de todas as camadas vence |
 | 🏁 Corrida na pista | 3 a 12 bolinhas numa pista gerada pela seed: largada, rampas, pinos, pás, funil, bumpers; buracos, minas, pás vermelhas e serras eliminam; a primeira a cruzar a chegada vence. Temas: cores, signos, países, mês de nascimento ou nomes dos comentários. **Modo liga**: tabela de pontos acumulada no fim do vídeo |
 | 🤯 Multiplicação | cada quique pode virar +1 bolinha, mas a saída vai abrindo: chega a 1.000 ou esvazia? |
 | 🗺️ Guerra de cores | 2 a 4 times pintam o mapa ao bater nas casas dos outros; quem domina quando o tempo acaba (aceita os mesmos temas da pista) |
+| ✂️ Pedra, papel e tesoura | três exércitos de emojis (🪨📄✂️ ou 🔥💧🌿) se perseguem e convertem quem vencem |
+| 📶 Corrida de ordenação | três algoritmos ordenam as mesmas barras com som; qual termina primeiro? |
+| 🔍 Ache o diferente | três níveis de grade com um emoji diferente escondido, contagem e revelação |
+| 📊 Corrida de barras | ranking de países ano a ano com dados oficiais do Banco Mundial (população e PIB, 1960–2024) |
+| 🏳️ Quiz de bandeiras | bandeiras desenhadas no código, do fácil ao difícil, com contagem regressiva |
+| 🀱 Dominó | fileira longa com pontos de risco: a última peça cai? |
+| 🎨 Pixel art | um emoji vira pixel art e se pinta cor por cor; adivinhe antes de terminar |
 
 A **seed** define o vídeo inteiro: a mesma seed sempre gera o mesmo vídeo. **🎯 Buscar final** testa seeds até achar o desfecho e a duração escolhidos.
 
@@ -44,4 +51,4 @@ As músicas são melodias em domínio público sintetizadas no próprio app (cad
 
 ## Créditos
 
-`public/vendor/mp4-muxer.mjs` é a biblioteca [mp4-muxer](https://github.com/Vanilagy/mp4-muxer) 5.1.3 (licença MIT). O modo automático usa o [puppeteer-core](https://pptr.dev) (Apache-2.0).
+`public/vendor/mp4-muxer.mjs` é a biblioteca [mp4-muxer](https://github.com/Vanilagy/mp4-muxer) 5.1.3 (licença MIT). O modo automático usa o [puppeteer-core](https://pptr.dev) (Apache-2.0). Os dados da corrida de barras são do [Banco Mundial](https://data.worldbank.org) (licença CC BY 4.0), e a fonte aparece no vídeo.

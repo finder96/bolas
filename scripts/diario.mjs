@@ -21,13 +21,15 @@ const outDir = path.resolve(ROOT, arg('saida', 'out'));
 const PORT = 5190 + ((Math.random() * 9) | 0);
 
 // ---------- o que entra no vídeo de hoje (mesma data = mesmas escolhas) ----------
-// Semana: dom/qua/sáb liga dos signos · seg multiplicação · ter "as bolinhas decidem" · qui guerra de cores · sex clássico
-const WEEK = ['liga', 'multiplica', 'decisao', 'liga', 'guerra', 'classico', 'liga'];
+// Domingo e quarta: Zodiac League. Nos outros 5 dias, os demais formatos em sequência (um por dia, sem repetir até dar a volta).
+const OUTROS = ['rps', 'multiplica', 'decisao', 'sorte', 'guerra', 'ordenacao', 'diferente', 'bandeiras', 'domino', 'pixel', 'barras', 'classico'];
+const SLOT = { 1: 0, 2: 1, 4: 2, 5: 3, 6: 4 }; // seg, ter, qui, sex, sáb
 const day = Math.floor(Date.parse(date + 'T00:00:00Z') / 864e5);
-const week = Math.floor(day / 7);
+const week = Math.floor((day + 4) / 7); // semanas começando no domingo
 const rng = mulberry32(day * 7919);
 const pick = arr => arr[(rng() * arr.length) | 0];
-const formato = arg('formato', arg('sim', WEEK[new Date(date + 'T00:00:00Z').getUTCDay()]));
+const wd = new Date(date + 'T00:00:00Z').getUTCDay();
+const formato = arg('formato', arg('sim', wd === 0 || wd === 3 ? 'liga' : OUTROS[(week * 5 + SLOT[wd]) % OUTROS.length]));
 
 const LIGA_FILE = path.join(ROOT, 'liga.json');
 const ligas = fs.existsSync(LIGA_FILE) ? JSON.parse(fs.readFileSync(LIGA_FILE, 'utf8')) : {};
@@ -41,6 +43,12 @@ function plan(f) {
   if (f === 'multiplica') return { sim: 'multiplica', dur: 'medio' };
   if (f === 'decisao') { const ks = Object.keys(DECISIONS); return { sim: 'plinko', opts: { tema: ks[week % ks.length], bolas: 7 }, dur: 'curto' }; }
   if (f === 'guerra') return { sim: 'guerra', opts: week % 2 ? { tema: 'cores', times: 2 } : { tema: 'paises', times: 4 }, dur: 'medio' };
+  if (f === 'sorte') return { sim: 'plinko', opts: { tema: 'sorte' }, dur: 'medio' };
+  if (f === 'rps') return { sim: 'rps', opts: { tema: week % 2 ? 'elementos' : 'classico' }, dur: 'medio' };
+  if (f === 'ordenacao') return { sim: 'ordenacao', opts: { disputa: ['rapidos', 'lentos', 'misto'][week % 3] }, dur: 'curto' };
+  if (f === 'diferente' || f === 'bandeiras' || f === 'pixel') return { sim: f, dur: 'curto' };
+  if (f === 'domino') return { sim: 'domino', outcome: rng() < 0.5 ? 'completo' : 'parou', dur: 'medio' };
+  if (f === 'barras') return { sim: 'barras', opts: { dados: week % 2 ? 'pib' : 'populacao' }, dur: 'livre' };
   if (f === 'classico') {
     const sims = ['labirinto', 'zona', 'corrida', 'pista'];
     return plan(sims[week % sims.length]);

@@ -1,5 +1,6 @@
 // Desenha um quadro da linha do tempo num canvas 1080×1920.
-import { W, H, FPS, CX, CY, RACE, PLINKO, TRACK, MULTI, ARENA, trackAt, angDiff, mulberry32, raceLabels, ranking, leagueResult } from './sims.js';
+import { W, H, FPS, CX, CY, RACE, PLINKO, TRACK, MULTI, ARENA, THEMES, trackAt, angDiff, mulberry32, raceLabels, ranking, leagueResult } from './sims.js';
+import { registerDraw } from './render2.js';
 
 const TAU = Math.PI * 2;
 const FONT = "Fredoka, 'Segoe UI Emoji', 'Apple Color Emoji', sans-serif";
@@ -63,6 +64,7 @@ export class Renderer {
     this.labels = raceLabels(tl.o);
     this.league = null;
     await Promise.all([document.fonts.load(`700 64px Fredoka`), document.fonts.load(`600 40px Fredoka`)]).catch(() => {});
+    await SETUP[tl.id]?.(this);
   }
 
   color(code) {
@@ -331,6 +333,7 @@ export class Renderer {
       this.text(label, W / 2, 1535, 84, { scale: 0.5 + 0.5 * easeBack(k), alpha: k, color });
     } else HUD[tl.id](this, f, t);
     this.drawLeague(t);
+    OVERLAY[tl.id]?.(this, t);
   }
 }
 
@@ -659,3 +662,7 @@ const RESULT = {
     : [`ALL GONE! 💀 max ${tl.result.peak}`, '#ff5a66']),
   guerra: (tl, r) => { const w = r.labels[tl.result.counts.indexOf(Math.max(...tl.result.counts))]; return [`${w.name.toUpperCase()} WINS! 🏆`, w.color]; },
 };
+
+// Preparação e camadas extras por simulação (os formatos do render2.js usam).
+const SETUP = {}, OVERLAY = {};
+registerDraw({ DRAW, HUD, RESULT, SETUP, OVERLAY, mix, rgba, clamp01, FONT, CX, THEMES, PLINKO });

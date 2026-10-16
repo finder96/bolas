@@ -6,7 +6,7 @@ import { suggestCaption } from './caption.js';
 
 const $ = s => document.querySelector(s);
 const DIAS = ['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB'];
-const DEFAULT_DUR = { labirinto: 'medio', zona: 'curto', plinko: 'curto', corrida: 'curto', pista: 'curto', multiplica: 'medio', guerra: 'medio' };
+const DEFAULT_DUR = { labirinto: 'medio', zona: 'curto', plinko: 'curto', corrida: 'curto', pista: 'curto', multiplica: 'medio', guerra: 'medio', rps: 'medio', ordenacao: 'curto', diferente: 'curto', barras: 'livre', bandeiras: 'curto', domino: 'medio', pixel: 'curto' };
 
 const iso = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 const fromIso = s => { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d); };
@@ -255,6 +255,11 @@ function drawStill() {
 
 function outcomeLabel(tl) {
   const o = outcomesFor(tl.id, tl.o).find(([k]) => k === tl.result.outcome);
+  if (tl.id === 'plinko' && tl.result.table) return 'sorte dos 12 signos sorteada';
+  if (tl.id === 'barras') return `1º lugar em ${tl.result.year}: ${tl.result.leader}`;
+  if (tl.id === 'pixel') return `desenho: ${tl.result.name}`;
+  if (tl.id === 'domino') return `${o ? o[1].toLowerCase() : ''} · ${tl.result.fallen}/${tl.result.total} peças`;
+  if (tl.id === 'diferente' || tl.id === 'bandeiras') return 'pronto (o público é quem acerta ou erra)';
   if (tl.id === 'plinko' && tl.result.answer != null) return `${o[1]} · ${tl.result.counts.join(' / ')}`;
   if (tl.id === 'multiplica') return `${o ? o[1].toLowerCase() : ''} · pico de ${tl.result.peak}`;
   if (tl.id === 'guerra') { const tot = tl.result.counts.reduce((a, b) => a + b, 0); return `${o ? o[1] : ''} · ${tl.result.counts.map(x => Math.round(x / tot * 100) + '%').join(' / ')}`; }

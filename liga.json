@@ -1,19 +1,19 @@
 {
   "signos": {
-    "day": 6,
+    "day": 7,
     "pts": {
-      "Gemini": 23,
-      "Libra": 20,
-      "Capricorn": 23,
-      "Taurus": 9,
-      "Virgo": 22,
-      "Aries": 8,
-      "Sagittarius": 19,
-      "Cancer": 18,
-      "Leo": 17,
-      "Scorpio": 9,
-      "Aquarius": 16,
-      "Pisces": 18
+      "Gemini": 33,
+      "Libra": 21,
+      "Capricorn": 26,
+      "Taurus": 10,
+      "Virgo": 29,
+      "Aries": 9,
+      "Sagittarius": 20,
+      "Cancer": 23,
+      "Leo": 18,
+      "Scorpio": 13,
+      "Aquarius": 18,
+      "Pisces": 19
     }
   }
 }
